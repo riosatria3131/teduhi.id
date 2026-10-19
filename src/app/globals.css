@@ -1,26 +1,66 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-paper: #f4f8fe;
+  --color-ink: #10275c;
+  --color-muted: #5a6a85;
+  --color-line: #e1e8f3;
+  --color-brand: #1868ea;
+  --color-brand-dark: #1450b8;
+  --color-brand-soft: #e8f1fe;
+  --color-danger: #c52b2b;
+  --color-danger-soft: #fde8e8;
+  --color-danger-fill: #e5484d;
+  --color-warn: #9a5b00;
+  --color-warn-soft: #fff0cf;
+  --color-warn-fill: #f5a524;
+  --color-ok: #17703a;
+  --color-ok-soft: #dcf5e3;
+  --color-ok-fill: #2fa84f;
+  --color-mint: #5eead0;
+  --color-night: #0b1233;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+html {
+  color-scheme: light;
+  scroll-padding-top: 5rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #ffffff;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Denyut halus pada tahap laporan yang sedang berjalan */
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgb(29 91 216 / 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgb(29 91 216 / 0);
+  }
+}
+
+.pulse-ring {
+  animation: pulse-ring 1.8s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-ring {
+    animation: none;
+  }
 }
