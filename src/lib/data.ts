@@ -1,11 +1,15 @@
 export const CATEGORIES = [
-  "Jalan & Trotoar",
-  "Penerangan Jalan",
-  "Sampah",
-  "Taman & Fasilitas",
-  "Drainase & Saluran",
+  "Longsor",
+  "Kebakaran",
+  "Gempa Bumi",
+  "Banjir",
+  "Tsunami",
   "Lainnya",
 ] as const;
+
+export const PROVINCES = ["Jawa Barat"] as const;
+
+export const CITIES = ["Kota Bogor"] as const;
 
 export const DISTRICTS = [
   "Bogor Tengah",
@@ -23,7 +27,7 @@ export const FAQS = [
   },
   {
     q: "Berapa lama laporan saya ditindaklanjuti?",
-    a: "Pemerintah memeriksa laporan lebih dulu. Setelah dinyatakan valid, petugas dijadwalkan turun ke lokasi. Status laporan berubah di setiap tahap, jadi Anda tidak perlu bertanya.",
+    a: "Admin memeriksa laporan lebih dulu. Setelah dinyatakan valid, petugas dijadwalkan turun ke lokasi. Status laporan berubah di setiap tahap, jadi Anda tidak perlu bertanya kembali.",
   },
   {
     q: "Foto seperti apa yang sebaiknya saya unggah?",
@@ -31,10 +35,10 @@ export const FAQS = [
   },
   {
     q: "Bagaimana kalau saya tidak tahu koordinat lokasinya?",
-    a: "Tidak perlu. Pilih kecamatan dan tulis alamat atau patokan terdekat. Jika Anda sedang di lokasi, tekan “Gunakan lokasi saya” dan koordinat terisi otomatis.",
+    a: "Tidak perlu. Ketik daerah dan tulis alamat atau patokan terdekat.",
   },
   {
     q: "Mengapa laporan saya ditolak?",
-    a: "Laporan bisa ditolak jika fotonya tidak menunjukkan kerusakan, lokasinya tidak jelas, atau sudah pernah dilaporkan orang lain. Anda bisa mengirim ulang dengan data yang lebih lengkap.",
+    a: "Laporan bisa ditolak jika fotonya tidak menunjukkan bencana yang serius, lokasinya tidak jelas, atau sudah pernah dilaporkan orang lain.",
   },
 ];

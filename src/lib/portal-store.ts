@@ -1,11 +1,9 @@
 import type { ReportPayload } from "@/lib/api";
-import { getDemoSession } from "@/lib/demo-auth";
+import { getSupabaseClient } from "@/lib/supabaseClient";
 import type { ReportStatus } from "@/components/portal/portal-data";
 
-const DATABASE_NAME = "laporkota-local-demo";
-const DATABASE_VERSION = 1;
-const STORE_NAME = "reports";
 const REPORTS_CHANGED = "laporkota:reports-changed";
+const REPORT_ATTACHMENTS_BUCKET = "report-attachments";
 
 export type LocalReport = {
   id: string;
@@ -19,82 +17,142 @@ export type LocalReport = {
   status: ReportStatus;
   createdAt: string;
   ownerEmail: string;
-  photo: Blob;
+  reporterName?: string;
+  photo: string;
   photoName: string;
 };
 
-function openDatabase(): Promise<IDBDatabase> {
-  if (typeof indexedDB === "undefined") return Promise.reject(new Error("Browser ini tidak mendukung penyimpanan lokal."));
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
-    request.onupgradeneeded = () => {
-      const database = request.result;
-      if (!database.objectStoreNames.contains(STORE_NAME)) {
-        const store = database.createObjectStore(STORE_NAME, { keyPath: "id" });
-        store.createIndex("ownerEmail", "ownerEmail", { unique: false });
-        store.createIndex("createdAt", "createdAt", { unique: false });
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error("Penyimpanan laporan tidak dapat dibuka."));
-  });
+export type AdminReport = LocalReport;
+
+export type ReportStatusHistoryEntry = {
+  status: ReportStatus;
+  changedAt: string;
+};
+
+type ReportRow = {
+  id: string;
+  title: string;
+  category: string;
+  description: string;
+  district: string;
+  address: string;
+  latitude: number | string | null;
+  longitude: number | string | null;
+  status: ReportStatus | "review";
+  created_at: string;
+  user_id: string;
+  owner_email?: string | null;
+  reporter?: { nama?: string | null; email?: string | null } | null;
+  profiles?: { nama?: string | null; email?: string | null } | Array<{ nama?: string | null; email?: string | null }> | null;
+  photo_path: string;
+};
+
+function toLocalReport(row: ReportRow): LocalReport {
+  const photoName = decodeURIComponent(row.photo_path.split("/").pop()?.split("?")[0] ?? "foto-bukti");
+  const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+  const reporter = row.reporter ?? profile;
+  return {
+    id: row.id,
+    title: row.title,
+    category: row.category,
+    description: row.description,
+    district: row.district,
+    address: row.address,
+    latitude: row.latitude == null ? "" : String(row.latitude),
+    longitude: row.longitude == null ? "" : String(row.longitude),
+    // Keep review as an internal admin inbox state; show it to the citizen as pending verification.
+    status: row.status === "review" ? "Menunggu Verifikasi" : row.status,
+    createdAt: row.created_at,
+    ownerEmail: row.owner_email ?? reporter?.email ?? row.user_id,
+    reporterName: reporter?.nama ?? undefined,
+    photo: row.photo_path,
+    photoName,
+  };
 }
 
-function makeReportId() {
-  const time = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).slice(2, 6).toUpperCase();
-  return `LK-DEMO-${time}-${random}`;
+async function getCurrentUser() {
+  const { data, error } = await getSupabaseClient().auth.getUser();
+  if (error || !data.user) throw new Error("Masuk ke akun sebelum mengelola laporan.");
+  return data.user;
 }
 
 export async function saveLocalReport(payload: ReportPayload & { address: string }): Promise<LocalReport> {
-  const session = getDemoSession();
-  if (!session) throw new Error("Masuk ke akun demo sebelum menyimpan laporan lokal.");
-  const report: LocalReport = {
-    id: makeReportId(),
-    title: payload.title.trim(),
-    category: payload.category,
-    description: payload.description.trim(),
-    district: payload.district,
-    address: payload.address.trim(),
-    latitude: payload.latitude,
-    longitude: payload.longitude,
-    status: "Menunggu Verifikasi",
-    createdAt: new Date().toISOString(),
-    ownerEmail: session.email,
-    photo: payload.photo,
-    photoName: payload.photo.name,
-  };
+  const supabase = getSupabaseClient();
+  const user = await getCurrentUser();
+  const safeFileName = payload.photo.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const storagePath = `${user.id}/${crypto.randomUUID()}-${safeFileName}`;
 
-  const database = await openDatabase();
-  try {
-    await new Promise<void>((resolve, reject) => {
-      const transaction = database.transaction(STORE_NAME, "readwrite");
-      transaction.objectStore(STORE_NAME).add(report);
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error ?? new Error("Laporan lokal gagal disimpan."));
-      transaction.onabort = () => reject(transaction.error ?? new Error("Penyimpanan laporan dibatalkan."));
+  const { error: uploadError } = await supabase.storage
+    .from(REPORT_ATTACHMENTS_BUCKET)
+    .upload(storagePath, payload.photo, {
+      contentType: payload.photo.type,
+      upsert: false,
     });
-  } finally {
-    database.close();
+  if (uploadError) throw new Error(`Foto gagal diunggah: ${uploadError.message}`);
+
+  const { data: publicUrlData } = supabase.storage
+    .from(REPORT_ATTACHMENTS_BUCKET)
+    .getPublicUrl(storagePath);
+
+  const { data, error } = await supabase
+    .from("reports")
+    .insert({
+      user_id: user.id,
+      title: payload.title.trim(),
+      category: payload.category,
+      description: payload.description.trim(),
+      district: payload.district,
+      address: payload.address.trim(),
+      latitude: payload.latitude ? Number(payload.latitude) : null,
+      longitude: payload.longitude ? Number(payload.longitude) : null,
+      status: "review",
+      photo_path: publicUrlData.publicUrl,
+    })
+    .select("*")
+    .single();
+
+  if (error) {
+    await supabase.storage.from(REPORT_ATTACHMENTS_BUCKET).remove([storagePath]);
+    throw new Error(`Foto berhasil diunggah, tetapi laporan gagal disimpan: ${error.message}`);
   }
 
   window.dispatchEvent(new Event(REPORTS_CHANGED));
-  return report;
+  return toLocalReport(data as ReportRow);
 }
 
 export async function getLocalReports(): Promise<LocalReport[]> {
-  const session = getDemoSession();
-  if (!session) return [];
-  const database = await openDatabase();
-  try {
-    return await new Promise<LocalReport[]>((resolve, reject) => {
-      const request = database.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME).index("ownerEmail").getAll(session.email);
-      request.onsuccess = () => resolve((request.result as LocalReport[]).sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
-      request.onerror = () => reject(request.error ?? new Error("Laporan lokal gagal dibaca."));
-    });
-  } finally {
-    database.close();
-  }
+  const { data: { session }, error: sessionError } = await getSupabaseClient().auth.getSession();
+  if (sessionError || !session?.user) throw new Error("Masuk ke akun sebelum mengelola laporan.");
+  const { data, error } = await getSupabaseClient()
+    .from("reports")
+    .select("id,title,category,description,district,address,latitude,longitude,status,created_at,user_id,photo_path")
+    .eq("user_id", session.user.id)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data as ReportRow[]).map(toLocalReport);
+}
+
+export async function getAllLocalReports(): Promise<LocalReport[]> {
+  const { data, error } = await getSupabaseClient()
+    .from("reports")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data as ReportRow[]).map(toLocalReport);
+}
+
+export async function updateLocalReportStatus(id: string, status: ReportStatus): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("reports")
+    .update({ status })
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Laporan tidak ditemukan atau Anda tidak memiliki izin untuk mengubahnya.");
+  // Database trigger creates the owner notification atomically after a status transition.
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(REPORTS_CHANGED));
 }
 
 export function subscribeToLocalReports(onChange: () => void) {
@@ -104,39 +162,57 @@ export function subscribeToLocalReports(onChange: () => void) {
 }
 
 export async function getLocalReport(id: string): Promise<LocalReport | null> {
-  const session = getDemoSession();
-  if (!session) return null;
-  const database = await openDatabase();
-  try {
-    return await new Promise<LocalReport | null>((resolve, reject) => {
-      const request = database.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME).get(id);
-      request.onsuccess = () => {
-        const report = request.result as LocalReport | undefined;
-        resolve(report?.ownerEmail === session.email ? report : null);
-      };
-      request.onerror = () => reject(request.error ?? new Error("Detail laporan lokal gagal dibaca."));
-    });
-  } finally {
-    database.close();
-  }
+  const { data, error } = await getSupabaseClient()
+    .from("reports")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? toLocalReport(data as ReportRow) : null;
 }
 
 export async function deleteLocalReport(id: string) {
-  const session = getDemoSession();
-  if (!session) throw new Error("Sesi demo tidak ditemukan.");
-  const report = await getLocalReport(id);
-  if (!report) throw new Error("Laporan lokal tidak ditemukan.");
-  const database = await openDatabase();
-  try {
-    await new Promise<void>((resolve, reject) => {
-      const transaction = database.transaction(STORE_NAME, "readwrite");
-      transaction.objectStore(STORE_NAME).delete(id);
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error ?? new Error("Laporan lokal gagal dihapus."));
-      transaction.onabort = () => reject(transaction.error ?? new Error("Penghapusan laporan dibatalkan."));
-    });
-  } finally {
-    database.close();
-  }
+  const { data, error } = await getSupabaseClient()
+    .from("reports")
+    .delete()
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Laporan tidak ditemukan atau Anda tidak memiliki izin untuk menghapusnya.");
   window.dispatchEvent(new Event(REPORTS_CHANGED));
+}
+
+/** Fetches reports with their citizen profile for the admin reports area. */
+export async function getAdminReports(): Promise<AdminReport[]> {
+  const { data, error } = await getSupabaseClient()
+    .from("reports")
+    .select("*, reporter:profiles!reports_user_id_profiles_fkey(nama,email)")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data as unknown as ReportRow[]).map(toLocalReport);
+}
+
+/** Fetches one report with its reporter profile for the admin detail page. */
+export async function getAdminReport(id: string): Promise<AdminReport | null> {
+  const { data, error } = await getSupabaseClient()
+    .from("reports")
+    .select("*, profiles(nama,email)")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? toLocalReport(data as unknown as ReportRow) : null;
+}
+
+export async function getAdminReportStatusHistory(id: string): Promise<ReportStatusHistoryEntry[]> {
+  const { data, error } = await getSupabaseClient()
+    .from("report_status_history")
+    .select("status, changed_at")
+    .eq("report_id", id)
+    .order("changed_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map((entry) => ({
+    status: entry.status as ReportStatus,
+    changedAt: entry.changed_at,
+  }));
 }

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function DaftarPage() {
   return (
     <>
-      <AuthHeading title="Daftar ke TEDUHI" subtitle="Buat akun untuk melapor dan memantau perbaikan fasilitas di sekitar Anda." />
+      <AuthHeading title="Mulai daftar" />
       <RegisterForm />
     </>
   );

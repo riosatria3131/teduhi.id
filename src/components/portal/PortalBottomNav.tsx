@@ -2,20 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BellIcon, HomeIcon, ListIcon, PlusIcon, UserIcon } from "@/components/icons";
+import { BellIcon, DocumentsIcon, HomeIcon, ListIcon, PlusIcon, UserIcon } from "@/components/icons";
 
 const items = [
   { href: "/portal", label: "Beranda", Icon: HomeIcon },
   { href: "/portal/riwayat", label: "Laporan", Icon: ListIcon },
   { href: "/portal/buat-laporan", label: "Buat", Icon: PlusIcon, primary: true },
-  { href: "/portal/notifikasi", label: "Notifikasi", Icon: BellIcon },
+  { href: "/portal/notifikasi", label: "Informasi", Icon: DocumentsIcon },
   { href: "/portal/profil", label: "Profil", Icon: UserIcon },
 ];
 
 export function PortalBottomNav() {
   const pathname = usePathname();
   return (
-    <nav aria-label="Navigasi bawah" className="fixed inset-x-0 bottom-0 z-40 grid min-h-[76px] grid-cols-5 border-t border-slate-100 bg-white/95 px-1 pb-[max(env(safe-area-inset-bottom),0.4rem)] pt-2 backdrop-blur lg:hidden">
+    <nav aria-label="Navigasi bawah" className="fixed inset-x-0 bottom-0 z-40 grid min-h-[76px] grid-cols-5 border-t border-slate-100 bg-white/95 px-1 pb-[max(env(safe-area-inset-bottom),1rem)] pt-2 backdrop-blur lg:hidden">
       {items.map(({ href, label, Icon, primary }) => {
         const active = href === "/portal" ? pathname === href : pathname.startsWith(href);
         return (

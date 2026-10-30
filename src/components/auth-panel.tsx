@@ -1,13 +1,21 @@
 import Link from "next/link";
-import { CameraIcon, CheckIcon, LogoMark, SparkleIcon } from "./icons";
+import { CameraIcon, CheckIcon, LogoMark } from "./icons";
 
 export function Brand() {
   return (
     <Link href="/" className="flex items-center gap-2.5">
       <LogoMark size={40} />
       <span className="leading-tight">
-        <span className="block text-xl font-extrabold tracking-tight text-ink">TEDUHI</span>
-        <span className="block text-[11px] text-muted">Suara Warga, Kota Lebih Baik</span>
+        <span className="flex items-center gap-1 text-xl font-extrabold tracking-tight text-[#102a61]">
+          Teduhi
+          <span aria-hidden="true" className="ml-0.5 size-0 border-y-[6px] border-y-transparent border-l-[8px] border-l-orange-500" />
+        </span>
+        <span className="mt-0.5 block whitespace-nowrap text-[11px] font-semibold">
+          <span className="text-[#28577f]">Temukan, </span>
+          <span className="text-orange-600">Edukasi </span>
+          <span className="text-muted">dan </span>
+          <span className="text-emerald-700">Hadapi</span>
+        </span>
       </span>
     </Link>
   );
@@ -25,8 +33,7 @@ export function AuthPanel() {
 
         <div className="max-w-xl py-10">
           <p className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-4 py-2 text-sm font-bold text-brand-dark">
-            <SparkleIcon width={16} height={16} />
-            Aplikasi pelaporan fasilitas umum
+            Aplikasi lapor bencana
           </p>
           <h1 className="mt-8 text-5xl leading-[1.02] font-extrabold tracking-[-0.04em] text-ink xl:text-[4.25rem]">
             Kota lebih baik, mulai dari satu laporan.

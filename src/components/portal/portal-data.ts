@@ -1,4 +1,4 @@
-export type ReportStatus = "Menunggu Verifikasi" | "Sedang Diproses" | "Selesai";
+export type ReportStatus = "Menunggu Verifikasi" | "Terverifikasi" | "Sedang Diproses" | "Selesai" | "Ditolak";
 
 export type PortalReport = {
   id: string;

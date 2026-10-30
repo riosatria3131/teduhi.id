@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BellIcon, ClipboardIcon, HomeIcon, ListIcon, UserIcon } from "@/components/icons";
+import { ClipboardIcon, DocumentsIcon, HomeIcon, ListIcon, UserIcon } from "@/components/icons";
 import { Brand } from "@/components/auth-panel";
 
 const links = [
   { href: "/portal", label: "Beranda", Icon: HomeIcon },
   { href: "/portal/buat-laporan", label: "Buat Laporan", Icon: ClipboardIcon },
   { href: "/portal/riwayat", label: "Riwayat Laporan", Icon: ListIcon },
-  { href: "/portal/notifikasi", label: "Notifikasi", Icon: BellIcon },
+  { href: "/portal/notifikasi", label: "Informasi", Icon: DocumentsIcon },
   { href: "/portal/profil", label: "Profil", Icon: UserIcon },
 ];
 
@@ -29,11 +29,6 @@ export function PortalSidebar() {
           );
         })}
       </nav>
-      <div className="mt-auto rounded-2xl bg-paper p-4">
-        <p className="text-sm font-bold text-ink">Ada kendala?</p>
-        <p className="mt-1 text-xs leading-relaxed text-muted">Pusat bantuan TEDUHI siap membantu Anda.</p>
-        <Link href="/portal/notifikasi" className="mt-3 inline-flex text-xs font-bold text-brand-dark hover:underline">Lihat bantuan</Link>
-      </div>
     </aside>
   );
 }

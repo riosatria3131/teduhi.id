@@ -1,3 +1,5 @@
+import { saveLocalReport } from "@/lib/portal-store";
+
 export type ReportPayload = {
   title: string;
   category: string;
@@ -9,18 +11,11 @@ export type ReportPayload = {
   photo: File;
 };
 
-/**
- * Placeholder pengiriman laporan.
- * Ganti isi fungsi ini dengan pemanggilan ke backend Anda
- * (Server Action, Route Handler, atau API eksternal).
- */
 export async function submitReport(
   payload: ReportPayload,
 ): Promise<{ ticket: string }> {
-  void payload;
-  await new Promise((resolve) => setTimeout(resolve, 800));
-  const ticket = `LK-${Date.now().toString(36).toUpperCase().slice(-6)}`;
-  return { ticket };
+  const report = await saveLocalReport(payload);
+  return { ticket: report.id };
 }
 
 /**

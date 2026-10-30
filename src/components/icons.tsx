@@ -1,4 +1,5 @@
 import type { SVGProps } from "react";
+import Image from "next/image";
 
 type IconProps = SVGProps<SVGSVGElement>;
 
@@ -130,6 +131,14 @@ export const ClipboardIcon = (p: IconProps) => (
 export const ListIcon = (p: IconProps) => (
   <Svg {...p}><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></Svg>
 );
+export const DocumentsIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M5 7 3 8l3.5 13L18 18" />
+    <path d="M7 4 5 5l3 13 10-2" />
+    <path d="M9 2h7l4 4v12H9V2Z" />
+    <path d="M16 2v4h4M11 9h7M11 12h7M11 15h7" />
+  </Svg>
+);
 export const RoadIcon = (p: IconProps) => (
   <Svg {...p}><path d="M7 3 4 21M17 3l3 18M12 4v3m0 4v3m0 4v3" /></Svg>
 );
@@ -148,31 +157,28 @@ export const DropIcon = (p: IconProps) => (
 export const GridIcon = (p: IconProps) => (
   <Svg {...p}><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" /></Svg>
 );
+export const UsersIcon = (p: IconProps) => (
+  <Svg {...p}><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M10 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM20 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></Svg>
+);
+export const SettingsIcon = (p: IconProps) => (
+  <Svg {...p}><circle cx="12" cy="12" r="3" /><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.6a8 8 0 0 1-1.7 1l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.7-1l-1.7.6-1.4-2.4 1.4-1.1a7 7 0 0 1 0-2l-1.4-1.1 1.4-2.4 1.7.6a8 8 0 0 1 1.7-1l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.7 1l1.7-.6 1.4 2.4-1.4 1.1a7 7 0 0 1 0 2Z" transform="translate(-1 -1)" /></Svg>
+);
 
-/** Logo TEDUHI: tiga gedung dengan nuansa biru. */
+/** Logo TEDUHI dari aset resmi di public/logo.png. */
 export function LogoMark({ size = 44 }: { size?: number }) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width={size} height={size} aria-hidden="true">
-      <rect x="3" y="22" width="14" height="22" rx="1.5" fill="#3b8bf5" />
-      <rect x="15" y="5" width="18" height="39" rx="1.5" fill="#1868ea" />
-      <rect x="31" y="17" width="14" height="27" rx="1.5" fill="#0f4fc4" />
-      <g fill="#dbe9ff">
-        <rect x="6" y="26" width="3" height="3" /><rect x="11" y="26" width="3" height="3" />
-        <rect x="6" y="32" width="3" height="3" /><rect x="11" y="32" width="3" height="3" />
-        <rect x="19" y="10" width="3" height="3" /><rect x="26" y="10" width="3" height="3" />
-        <rect x="19" y="17" width="3" height="3" /><rect x="26" y="17" width="3" height="3" />
-        <rect x="19" y="24" width="3" height="3" /><rect x="26" y="24" width="3" height="3" />
-        <rect x="19" y="31" width="3" height="3" /><rect x="26" y="31" width="3" height="3" />
-        <rect x="34" y="22" width="3" height="3" /><rect x="39" y="22" width="3" height="3" />
-        <rect x="34" y="29" width="3" height="3" /><rect x="39" y="29" width="3" height="3" />
-      </g>
-      <rect x="1" y="43" width="46" height="2.5" rx="1.2" fill="#0f4fc4" />
-    </svg>
+    <Image src="/logo.png?v=3" alt="" aria-hidden="true" width={size} height={size} unoptimized className="object-contain" />
   );
 }
 
 export const MailIcon = (p: IconProps) => (
   <Svg {...p}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></Svg>
+);
+export const WhatsAppIcon = (p: IconProps) => (
+  <Svg {...p}><path d="M20.5 11.8a8.5 8.5 0 0 1-12.6 7.5L4 20l.8-3.8a8.5 8.5 0 1 1 15.7-4.4Z" /><path d="M8.5 8.5c.2-.5.4-.5.7-.5h.5c.2 0 .4 0 .5.4l.7 1.7c.1.2.1.4-.1.6l-.5.6c-.2.2-.2.3-.1.5.3.5.7 1 1.2 1.4.5.4 1 .7 1.5.9.2.1.4.1.5-.1l.7-.8c.2-.2.4-.2.6-.1l1.6.8c.2.1.4.2.4.4 0 .2-.1 1-.6 1.4-.4.4-1 .6-1.6.5-.5-.1-1.2-.3-2.1-.7-1.2-.5-2.2-1.4-3-2.2-.8-.9-1.3-1.8-1.5-2.4-.2-.6 0-1.2.3-1.6Z" /></Svg>
+);
+export const PhoneIcon = (p: IconProps) => (
+  <Svg {...p}><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.4 19.4 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7l.5 2.8a2 2 0 0 1-.6 1.8L7.7 9.6a16 16 0 0 0 6.7 6.7l1.3-1.3a2 2 0 0 1 1.8-.6l2.8.5a2 2 0 0 1 1.7 2Z" /></Svg>
 );
 export const LockIcon = (p: IconProps) => (
   <Svg {...p}><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></Svg>

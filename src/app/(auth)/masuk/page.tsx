@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function MasukPage() {
   return (
     <>
-      <AuthHeading title="Masuk ke TEDUHI" subtitle="Lanjutkan melapor dan pantau perbaikan fasilitas di sekitar Anda." />
+      <AuthHeading title="Masukan akun anda" />
       <LoginForm />
     </>
   );

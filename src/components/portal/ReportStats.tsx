@@ -7,7 +7,7 @@ export function ReportStats() {
   const { reports } = usePortalReports();
   const stats = [
     { label: "Menunggu", value: reports.filter((report) => report.status === "Menunggu Verifikasi").length, Icon: ClockIcon, tone: "amber" },
-    { label: "Diproses", value: reports.filter((report) => report.status === "Sedang Diproses").length, Icon: WrenchIcon, tone: "blue" },
+    { label: "Diproses", value: reports.filter((report) => report.status === "Terverifikasi" || report.status === "Sedang Diproses").length, Icon: WrenchIcon, tone: "blue" },
     { label: "Selesai", value: reports.filter((report) => report.status === "Selesai").length, Icon: CheckIcon, tone: "teal" },
   ];
   return (

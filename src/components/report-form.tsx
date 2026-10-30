@@ -45,6 +45,7 @@ export function ReportForm() {
   const [geoMsg, setGeoMsg] = useState("");
   const [pending, setPending] = useState(false);
   const [ticket, setTicket] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState("");
 
   function onPhoto(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
@@ -100,6 +101,7 @@ export function ReportForm() {
     }
 
     setPending(true);
+    setSubmitError("");
     try {
       const res = await submitReport({
         title: get("title"),
@@ -112,6 +114,8 @@ export function ReportForm() {
         photo: photo as File,
       });
       setTicket(res.ticket);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Laporan gagal dikirim. Periksa koneksi lalu coba lagi.");
     } finally {
       setPending(false);
     }
@@ -135,10 +139,7 @@ export function ReportForm() {
         </span>
         <h2 id="judul-lapor" className="mt-5 text-2xl font-extrabold text-ink">Laporan Terkirim</h2>
         <p className="mx-auto mt-2 max-w-sm text-muted">
-          Terima kasih. Pemerintah akan memeriksa laporan Anda. Simpan kode berikut untuk memantau statusnya.
-        </p>
-        <p className="mt-5 inline-block rounded-lg bg-paper px-5 py-3 text-2xl font-extrabold tracking-wider text-ink tabular-nums">
-          {ticket}
+          Terima kasih. Pemerintah akan memeriksa laporan Anda. Pantau perkembangannya melalui halaman riwayat laporan.
         </p>
         <div className="mt-7">
           <button type="button" onClick={reset} className="rounded-lg border border-line px-5 py-3 font-semibold hover:bg-paper">
@@ -169,7 +170,7 @@ export function ReportForm() {
             />
           </Field>
 
-          <Field id="category" label="Kategori" required error={errors.category}>
+          <Field id="category" label="Kategori Bencana" required error={errors.category}>
             <select
               id="category" name="category" defaultValue="" className={input}
               aria-invalid={!!errors.category} aria-describedby={describe("category", errors.category)}
@@ -277,6 +278,7 @@ export function ReportForm() {
         </div>
 
         <div className="border-t border-line p-6 lg:col-span-2">
+          {submitError && <p role="alert" className="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{submitError}</p>}
           <button
             type="submit" disabled={pending}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand px-6 py-3.5 font-semibold text-white hover:bg-brand-dark disabled:opacity-70"

@@ -36,7 +36,7 @@ export function RegisterForm() {
       const res = await registerDemoAccount({ name, email, password });
       if (res.ok) {
         setMessage(res.message);
-        router.replace("/masuk");
+        if (res.redirectToLogin) router.replace("/masuk");
         return;
       }
       setMessage(res.message);
@@ -48,13 +48,12 @@ export function RegisterForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="mt-8 grid gap-5">
-      <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-900">Mode demo lokal: akun hanya tersimpan di tab browser ini, bukan ke server. Jangan gunakan kata sandi asli.</p>
+    <form onSubmit={onSubmit} noValidate className="register-form mt-8 grid gap-5">
       <AuthInput id="name" label="Nama lengkap" icon={UserIcon} autoComplete="name" placeholder="Nama lengkap" error={errors.name} />
       <AuthInput id="email" label="Email" icon={MailIcon} type="email" autoComplete="email" placeholder="email@contoh.com" error={errors.email} />
       <AuthInput id="password" label="Kata sandi" icon={LockIcon} type="password" autoComplete="new-password" placeholder="Minimal 8 karakter" error={errors.password} />
 
-      {message && <p role="status" className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">{message}</p>}
+      {message && <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900"><p>{message}</p>{message.startsWith("Email sudah terdaftar") && <Link href="/masuk" className="mt-2 inline-block font-bold text-brand-dark underline underline-offset-2">Masuk dengan email ini</Link>}</div>}
 
       <button
         type="submit" disabled={pending}
