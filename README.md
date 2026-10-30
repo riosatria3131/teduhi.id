@@ -42,7 +42,6 @@
    NEXT_PUBLIC_SUPABASE_ANON_KEY=ANON_PUBLIC_KEY_SUPABASE
    ```
 
-   Jangan masukkan secret atau file `.env.local` ke repository. Pengaturan provider Google OAuth dilakukan melalui Supabase Authentication dan Google Cloud Console.
 
 4. Jalankan server pengembangan:
 
