@@ -65,4 +65,4 @@ npm run start   # Jalankan build produksi
 - Halaman login: **selesai**.
 - Halaman pengguna/warga: **selesai**.
 - Halaman admin: **selesai**.
-- Tahap berikutnya: **penambahan fitur baru**.
+- Tahap berikutnya: **penambahan fitur baru, pengecekan eror dan bug**.
