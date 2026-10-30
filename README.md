@@ -4,8 +4,6 @@
 
 > Kontribusi saja tidak cukup, sebagai bukti dari tanggung jawab yang harus dilakukan, BPDLH & BNPB perlu tergabung dalam satu wadah yang responsif, solutif, dan transparan bagi masyarakat. Dengan ini kami bangun sebuah website yang mencakup semua kebutuhan tersebut, TEDUHI.
 
-TEDUHI adalah platform untuk menyampaikan dan memantau laporan bencana serta kondisi fasilitas umum, sekaligus menghubungkan masyarakat dengan pihak terkait.
-
 ## Teknologi yang digunakan
 
 - **Next.js 16** — framework aplikasi web dengan App Router.
