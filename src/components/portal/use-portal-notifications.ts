@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 
 const READ_KEY = "laporkota:demo-read-notifications";
@@ -91,6 +92,7 @@ function getDismissedIds() {
 }
 
 export function usePortalNotifications() {
+  const pathname = usePathname();
   const [read, setRead] = useState<string[]>([]);
   const [dismissed, setDismissed] = useState<string[]>([]);
   const [statusNotifications, setStatusNotifications] = useState<StatusNotification[]>([]);
@@ -115,12 +117,20 @@ export function usePortalNotifications() {
 
   useEffect(() => {
     let inFlight = false;
+    let refreshPending = false;
+    let active = true;
+    let channel: ReturnType<ReturnType<typeof getSupabaseClient>["channel"]> | null = null;
     const syncState = () => {
       setRead(getReadIds());
       setDismissed(getDismissedIds());
     };
     const refresh = () => {
-      if (inFlight || document.visibilityState !== "visible") return;
+      if (document.visibilityState !== "visible") return;
+      cachedStatusNotifications = null;
+      if (inFlight) {
+        refreshPending = true;
+        return;
+      }
       inFlight = true;
       void refreshStatusNotifications()
         .catch((error: unknown) => {
@@ -128,29 +138,48 @@ export function usePortalNotifications() {
         })
         .finally(() => {
           inFlight = false;
+          if (refreshPending) {
+            refreshPending = false;
+            refresh();
+          }
         });
     };
+    const supabase = getSupabaseClient();
     syncState();
     refresh();
+    void supabase.auth.getSession().then(({ data, error }) => {
+      if (error) throw error;
+      const user = data.session?.user;
+      if (!active || !user) return;
+      channel = supabase
+        .channel(`portal-report-notifications-${user.id}-${crypto.randomUUID()}`)
+        .on("postgres_changes", {
+          event: "INSERT",
+          schema: "public",
+          table: "report_notifications",
+          filter: `user_id=eq.${user.id}`,
+        }, refresh)
+        .subscribe();
+    }).catch(() => {
+      // Route-change and focus refreshes remain available if Realtime is unavailable.
+    });
     window.addEventListener(READ_CHANGED, syncState);
     window.addEventListener("storage", syncState);
     window.addEventListener("focus", refresh);
     document.addEventListener("visibilitychange", refresh);
     return () => {
+      active = false;
       window.removeEventListener(READ_CHANGED, syncState);
       window.removeEventListener("storage", syncState);
       window.removeEventListener("focus", refresh);
       document.removeEventListener("visibilitychange", refresh);
+      if (channel) void supabase.removeChannel(channel);
     };
-  }, [refreshStatusNotifications]);
+  }, [pathname, refreshStatusNotifications]);
 
-  // Only surface unread notifications. Applying the local read state before
-  // rendering prevents stale responses from bringing opened messages back.
-  const notifications = statusNotifications.filter(
-    (item) => item.unread && !read.includes(item.id) && !dismissed.includes(item.id),
-  );
-
-  const unreadCount = notifications.length;
+  // Keep read messages in the inbox; unread state only controls the bell/count.
+  const notifications = statusNotifications.filter((item) => !dismissed.includes(item.id));
+  const unreadCount = notifications.filter((item) => item.unread && !read.includes(item.id)).length;
 
   function markRead(id: string) {
     const next = read.includes(id) ? read : [...read, id];
@@ -185,9 +214,11 @@ export function usePortalNotifications() {
   }
 
   function markAllRead() {
-    const next = notifications.map((item) => item.id);
+    const unreadNotifications = notifications.filter((item) => item.unread && !read.includes(item.id));
+    const next = [...new Set([...read, ...unreadNotifications.map((item) => item.id)])];
     setRead(next);
-    const notificationIds = next
+    const notificationIds = unreadNotifications
+      .map((item) => item.id)
       .filter((id) => id.startsWith("status:"))
       .map((id) => id.slice("status:".length));
     if (notificationIds.length > 0) {
@@ -206,7 +237,8 @@ export function usePortalNotifications() {
       });
     }
     setStatusNotifications((current) => {
-      const nextNotifications = current.map((item) => ({ ...item, unread: false }));
+      const readIds = new Set(unreadNotifications.map((item) => item.id));
+      const nextNotifications = current.map((item) => readIds.has(item.id) ? { ...item, unread: false } : item);
       if (cachedStatusNotifications) cachedStatusNotifications = { ...cachedStatusNotifications, data: nextNotifications };
       return nextNotifications;
     });
