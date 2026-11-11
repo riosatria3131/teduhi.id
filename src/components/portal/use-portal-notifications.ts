@@ -45,14 +45,20 @@ async function loadStatusNotifications(userId: string): Promise<StatusNotificati
       .in("report_id", reportIds)
       .order("created_at", { ascending: false });
     if (error) throw error;
-    const notifications = (data ?? []).map((item) => ({
-      id: `status:${item.id}`,
-      reportId: String(item.report_id),
-      title: item.title,
-      detail: item.message,
-      time: new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date(item.created_at)),
-      unread: !item.is_read,
-    }));
+    const latestByReport = new Map<string, StatusNotification>();
+    for (const item of data ?? []) {
+      const reportId = String(item.report_id);
+      if (latestByReport.has(reportId)) continue;
+      latestByReport.set(reportId, {
+        id: `status:${item.id}`,
+        reportId,
+        title: item.title,
+        detail: item.message,
+        time: new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date(item.created_at)),
+        unread: !item.is_read,
+      });
+    }
+    const notifications = Array.from(latestByReport.values());
     cachedStatusNotifications = { userId, data: notifications, fetchedAt: Date.now() };
     return notifications;
   })();
