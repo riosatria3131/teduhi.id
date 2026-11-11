@@ -5,8 +5,10 @@ import { useEffect, useRef, useState } from "react";
 import { BellIcon } from "@/components/icons";
 import { getBpdlhReportSubmissions, type BpdlhReportSubmission } from "@/lib/bpdlh-report-submissions";
 import { subscribeToBudgetChanges } from "@/lib/bpdlh-budget-store";
+import { loadAdminNotificationReadIds, markAdminNotificationReadIds } from "@/lib/admin-notification-read-state";
 
 const SEEN_KEY = "teduhi:bpdlh-seen-citizen-reports";
+const READ_ID_PREFIX = "bpdlh-submission:";
 
 function getSeenIds() {
   try {
@@ -49,6 +51,19 @@ export function BpdlhNotifications() {
     const syncSeen = () => setSeenIds(getSeenIds());
     void refresh();
     syncSeen();
+    const savedSeenIds = getSeenIds();
+    if (savedSeenIds.length > 0) {
+      markAdminNotificationReadIds(savedSeenIds.map((id) => `${READ_ID_PREFIX}${id}`));
+    }
+    void loadAdminNotificationReadIds().then((ids) => {
+      if (!active) return;
+      const persistedSeenIds = ids
+        .filter((id) => id.startsWith(READ_ID_PREFIX))
+        .map((id) => id.slice(READ_ID_PREFIX.length));
+      setSeenIds((current) => [...new Set([...current, ...persistedSeenIds])]);
+    }).catch(() => {
+      // Keep local seen state if persisted reads are temporarily unavailable.
+    });
     const unsubscribe = subscribeToBudgetChanges(() => void refresh());
     const poll = window.setInterval(() => void refresh(), 20000);
     window.addEventListener("storage", syncSeen);
@@ -71,6 +86,7 @@ export function BpdlhNotifications() {
     } catch {
       // Navigasi tetap dapat dilakukan walau penyimpanan notifikasi tidak tersedia.
     }
+    markAdminNotificationReadIds([`${READ_ID_PREFIX}${reportId}`]);
   }
 
   function closeNotifications() {

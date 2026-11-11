@@ -1,3 +1,9 @@
+import {
+  getLocalAdminNotificationReadIds,
+  loadAdminNotificationReadIds,
+  markAdminNotificationReadIds,
+} from "@/lib/admin-notification-read-state";
+
 export type BpdlhDecisionNotification = {
   id: string;
   requestId: string;
@@ -24,6 +30,17 @@ export function getBpdlhDecisionNotifications(): BpdlhDecisionNotification[] {
 }
 
 export function getReadDecisionNotificationIds(): string[] {
+  return [...new Set([...getLocalAdminNotificationReadIds(), ...readLegacyDecisionIds()])];
+}
+
+export async function loadReadDecisionNotificationIds(): Promise<string[]> {
+  const legacyIds = readLegacyDecisionIds();
+  if (legacyIds.length > 0) markAdminNotificationReadIds(legacyIds);
+  const ids = await loadAdminNotificationReadIds();
+  return [...new Set([...ids, ...legacyIds])];
+}
+
+function readLegacyDecisionIds(): string[] {
   if (typeof window === "undefined") return [];
   try {
     const value: unknown = JSON.parse(localStorage.getItem(READ_KEY) ?? "[]");
@@ -40,8 +57,9 @@ export function publishBpdlhDecisionNotification(notification: BpdlhDecisionNoti
 }
 
 export function markDecisionNotificationsRead(ids: string[]): void {
-  const allIds = new Set([...getReadDecisionNotificationIds(), ...ids]);
-  localStorage.setItem(READ_KEY, JSON.stringify([...allIds]));
+  const allIds = [...new Set([...getReadDecisionNotificationIds(), ...ids])];
+  localStorage.setItem(READ_KEY, JSON.stringify(allIds));
+  markAdminNotificationReadIds(ids);
   window.dispatchEvent(new Event(CHANGED_EVENT));
 }
 

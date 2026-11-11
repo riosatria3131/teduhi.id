@@ -11,6 +11,7 @@ import { useAdminNotificationPreference } from "@/lib/admin-notification-prefere
 import {
   getBpdlhDecisionNotifications,
   getReadDecisionNotificationIds,
+  loadReadDecisionNotificationIds,
   markDecisionNotificationsRead,
   subscribeToBpdlhDecisionNotifications,
   type BpdlhDecisionNotification,
@@ -68,6 +69,11 @@ function useDecisionNotifications() {
         });
     };
     const timer = window.setTimeout(sync, 0);
+    void loadReadDecisionNotificationIds().then((ids) => {
+      if (active) setReadIds((current) => [...new Set([...current, ...ids])]);
+    }).catch(() => {
+      // Preserve local read state if persisted reads are temporarily unavailable.
+    });
     const unsubscribe = subscribeToBpdlhDecisionNotifications(sync);
     const poll = window.setInterval(sync, 20000);
     const supabase = getSupabaseClient();
