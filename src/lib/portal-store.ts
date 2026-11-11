@@ -18,6 +18,7 @@ export type LocalReport = {
   createdAt: string;
   ownerEmail: string;
   reporterName?: string;
+  reporterPhone?: string;
   photo: string;
   photoName: string;
 };
@@ -42,8 +43,8 @@ type ReportRow = {
   created_at: string;
   user_id: string;
   owner_email?: string | null;
-  reporter?: { nama?: string | null; email?: string | null } | null;
-  profiles?: { nama?: string | null; email?: string | null } | Array<{ nama?: string | null; email?: string | null }> | null;
+  reporter?: { nama?: string | null; email?: string | null; no_telepon?: string | null } | null;
+  profiles?: { nama?: string | null; email?: string | null; no_telepon?: string | null } | Array<{ nama?: string | null; email?: string | null; no_telepon?: string | null }> | null;
   photo_path: string;
 };
 
@@ -65,6 +66,7 @@ function toLocalReport(row: ReportRow): LocalReport {
     createdAt: row.created_at,
     ownerEmail: row.owner_email ?? reporter?.email ?? row.user_id,
     reporterName: reporter?.nama ?? undefined,
+    reporterPhone: reporter?.no_telepon ?? undefined,
     photo: row.photo_path,
     photoName,
   };
@@ -187,7 +189,7 @@ export async function deleteLocalReport(id: string) {
 export async function getAdminReports(): Promise<AdminReport[]> {
   const { data, error } = await getSupabaseClient()
     .from("reports")
-    .select("*, reporter:profiles!reports_user_id_profiles_fkey(nama,email)")
+    .select("*, reporter:profiles!reports_user_id_profiles_fkey(nama,email,no_telepon)")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data as unknown as ReportRow[]).map(toLocalReport);
@@ -197,7 +199,7 @@ export async function getAdminReports(): Promise<AdminReport[]> {
 export async function getAdminReport(id: string): Promise<AdminReport | null> {
   const { data, error } = await getSupabaseClient()
     .from("reports")
-    .select("*, profiles(nama,email)")
+    .select("*, profiles(nama,email,no_telepon)")
     .eq("id", id)
     .maybeSingle();
   if (error) throw error;

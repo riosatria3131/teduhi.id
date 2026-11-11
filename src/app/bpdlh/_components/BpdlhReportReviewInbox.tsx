@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CheckIcon, ClockIcon, FileIcon } from "@/components/icons";
+import { CheckIcon, ClockIcon, FileIcon, PhoneIcon } from "@/components/icons";
 import { getBpdlhReportSubmissions, reviewBpdlhReport, type BpdlhReportSubmission, type BpdlhSubmissionStatus } from "@/lib/bpdlh-report-submissions";
+import { getPhoneHref } from "@/lib/phone-contact";
 
 const decisionStyles: Record<BpdlhSubmissionStatus, string> = {
   "Belum Diajukan": "bg-slate-100 text-slate-600",
@@ -85,11 +86,13 @@ export function BpdlhReportReviewInbox() {
         <ul className="divide-y divide-slate-100">
           {submissions.map((submission) => {
             const waiting = submission.submissionStatus === "Menunggu Review";
+            const reporterPhoneHref = getPhoneHref(submission.reporterPhone);
             return <li key={submission.reportId} className="grid gap-3 p-4 sm:p-5 xl:grid-cols-[minmax(0,1fr)_minmax(240px,0.55fr)]">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2"><h3 className="text-xs font-extrabold text-[#102a61] sm:text-sm">{submission.title}</h3><span className={`rounded-full px-2 py-1 text-[9px] font-bold ${decisionStyles[submission.submissionStatus]}`}>{submission.submissionStatus}</span></div>
                 <p className="mt-1 text-[10px] text-slate-500">{submission.category} · {[submission.address, submission.district].filter(Boolean).join(", ")}</p>
                 <p className="mt-1 text-[10px] text-slate-500">Pelapor: {submission.reporter} · Dikirim {formatSubmittedDate(submission.submittedAt)}</p>
+                {reporterPhoneHref && <a href={reporterPhoneHref} className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 hover:underline"><PhoneIcon width={12} height={12} />Hubungi warga · {submission.reporterPhone}</a>}
                 {submission.adminNote && <p className="mt-2 rounded-lg bg-slate-50 p-2.5 text-[10px] leading-relaxed text-slate-600"><strong>Catatan admin utama:</strong> {submission.adminNote}</p>}
                 {submission.bpdlhNote && <p className="mt-2 rounded-lg bg-amber-50 p-2.5 text-[10px] leading-relaxed text-amber-800"><strong>Catatan keputusan:</strong> {submission.bpdlhNote}</p>}
               </div>

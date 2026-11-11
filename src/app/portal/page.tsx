@@ -2,15 +2,12 @@ import { FileIcon } from "@/components/icons";
 import { LiveDate } from "@/components/LiveDate";
 import { PortalHomeGuidance } from "@/components/portal/PortalHomeGuidance";
 import { PortalImportantContacts } from "@/components/portal/PortalImportantContacts";
-import { PortalHeader } from "@/components/portal/PortalHeader";
 import { ReportStats } from "@/components/portal/ReportStats";
 
 export default function PortalHomePage() {
   return (
     <div className="mx-auto grid max-w-[1320px] gap-6 sm:gap-7 xl:gap-8">
-      <PortalHeader title="Halo" personalized subtitle="Ada bencana? Segera tindak lanjuti!" />
-
-      <section aria-labelledby="my-reports-title" className="relative isolate overflow-hidden rounded-[24px] bg-linear-to-br from-[#075be5] via-[#0878e5] to-[#12cbb8] p-4 text-white shadow-[0_20px_55px_-32px_rgba(0,76,190,0.75)] sm:rounded-[28px] sm:p-6 lg:p-8">
+      <section aria-labelledby="my-reports-title" className="relative isolate overflow-hidden rounded-[24px] border border-white/25 bg-linear-to-br from-[#075be5] via-[#0878e5] to-[#12cbb8] p-4 text-white shadow-[0_20px_55px_-32px_rgba(0,76,190,0.75)] sm:rounded-[28px] sm:p-6 lg:p-8">
         <div aria-hidden="true" className="absolute -right-16 -top-24 -z-10 size-64 rounded-full border border-white/10 sm:size-80" />
         <div aria-hidden="true" className="absolute -bottom-36 -left-12 -z-10 size-64 rounded-full border border-white/10" />
         <div>

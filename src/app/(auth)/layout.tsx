@@ -27,9 +27,9 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       {!isAuthPage && <AuthPanel />}
 
       <section className={`flex w-full justify-center px-5 sm:px-10 ${isAuthPage ? "items-center py-5 sm:py-8" : "items-start py-10 lg:py-16"}`}>
-          <div className={`w-full ${isAuthPage ? "max-w-lg" : "max-w-[28rem]"}`}>
+          <div className={`w-full ${isAuthPage ? "max-w-[30rem]" : "max-w-[28rem]"}`}>
           {isAuthPage ? (
-            <div className="mb-8">
+            <div className={`mb-8 ${isLoginPage ? "login-brand" : ""}`}>
               <Brand />
             </div>
           ) : null}

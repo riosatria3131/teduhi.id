@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { CalendarIcon, CheckIcon, FileIcon, ListIcon, PinIcon, SearchIcon, ShieldCheckIcon } from "@/components/icons";
+import { CalendarIcon, CheckIcon, FileIcon, ListIcon, PhoneIcon, PinIcon, SearchIcon, ShieldCheckIcon } from "@/components/icons";
 import {
   getBpdlhReportSubmissions,
   reviewBpdlhReport,
   type BpdlhReportSubmission,
   type BpdlhSubmissionStatus,
 } from "@/lib/bpdlh-report-submissions";
+import { getPhoneHref } from "@/lib/phone-contact";
 
 const statuses = ["Menunggu Review", "Disetujui", "Perlu Revisi", "Ditolak"] as const;
 const statusStyles: Record<BpdlhSubmissionStatus, string> = {
@@ -37,8 +38,6 @@ export function FundingInbox() {
   const [notice, setNotice] = useState("");
   const [selected, setSelected] = useState<BpdlhReportSubmission | null>(null);
   const [note, setNote] = useState("");
-  const [transferDescription, setTransferDescription] = useState("");
-  const [transferProof, setTransferProof] = useState<File | null>(null);
   const [pendingDecision, setPendingDecision] = useState<Exclude<BpdlhSubmissionStatus, "Belum Diajukan" | "Menunggu Review"> | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -84,14 +83,13 @@ export function FundingInbox() {
   const firstItem = filtered.length ? (page - 1) * pageSize + 1 : 0;
   const lastItem = Math.min(page * pageSize, filtered.length);
   const selectedMapQuery = selected ? [selected.address, selected.district].filter(Boolean).join(", ") : "";
+  const selectedReporterPhoneHref = selected ? getPhoneHref(selected.reporterPhone) : null;
   const selectedMapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedMapQuery)}`;
   const selectedMapEmbedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(selectedMapQuery)}&output=embed`;
 
   function openReview(submission: BpdlhReportSubmission) {
     setSelected(submission);
     setNote(submission.bpdlhNote);
-    setTransferDescription(submission.transferDescription);
-    setTransferProof(null);
     setPendingDecision(null);
     setError("");
     setNotice("");
@@ -99,10 +97,6 @@ export function FundingInbox() {
 
   async function decide(decision: Exclude<BpdlhSubmissionStatus, "Belum Diajukan" | "Menunggu Review">) {
     if (!selected) return;
-    if (decision === "Disetujui" && (!transferDescription.trim() || !transferProof)) {
-      setError("Lengkapi deskripsi dan bukti transfer sebelum menyetujui pengajuan.");
-      return;
-    }
     if (decision !== "Disetujui" && !note.trim()) {
       setError(decision === "Perlu Revisi" ? "Isi catatan revisi sebelum mengirim keputusan." : "Isi alasan penolakan sebelum mengirim keputusan.");
       return;
@@ -111,9 +105,7 @@ export function FundingInbox() {
     setError("");
     setNotice("");
     try {
-      await reviewBpdlhReport(selected.reportId, decision, note, decision === "Disetujui"
-        ? { description: transferDescription, proof: transferProof! }
-        : undefined);
+      await reviewBpdlhReport(selected.reportId, decision, note);
       await refresh();
       setSelected(null);
       setPendingDecision(null);
@@ -198,12 +190,9 @@ export function FundingInbox() {
           </div>
 
           <aside className="grid gap-4 xl:sticky xl:top-24">
-            <section className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5"><div className="flex items-center gap-3 border-b border-slate-100 pb-4"><span className="grid size-10 place-items-center rounded-xl bg-indigo-50 text-indigo-700"><ShieldCheckIcon width={20} height={20} /></span><div><h3 className="text-sm font-extrabold text-[#102a61]">Keputusan verifikasi</h3><p className="mt-1 text-[10px] text-slate-500">Pelapor: {selected.reporter}</p></div></div>
+            <section className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5"><div className="flex items-center gap-3 border-b border-slate-100 pb-4"><span className="grid size-10 place-items-center rounded-xl bg-indigo-50 text-indigo-700"><ShieldCheckIcon width={20} height={20} /></span><div><h3 className="text-sm font-extrabold text-[#102a61]">Keputusan verifikasi</h3><p className="mt-1 text-[10px] text-slate-500">Pelapor: {selected.reporter}</p>{selectedReporterPhoneHref && <a href={selectedReporterPhoneHref} className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 hover:underline"><PhoneIcon width={12} height={12} />Hubungi warga · {selected.reporterPhone}</a>}</div></div>
               {selected.submissionStatus === "Menunggu Review" ? <>
-                {pendingDecision === "Disetujui" ? <div className="mt-4 grid gap-3 rounded-xl border border-emerald-100 bg-emerald-50/50 p-4"><div><h4 className="text-sm font-extrabold text-emerald-900">Bukti transfer & deskripsi</h4><p className="mt-1 text-[10px] leading-relaxed text-emerald-800">Lampirkan bukti penyaluran dan keterangannya sebelum menyetujui laporan.</p></div>
-                  <label htmlFor="bpdlh-transfer-proof" className="grid gap-1.5 text-xs font-bold text-slate-700">Bukti transfer <span className="font-normal text-rose-600">Wajib · gambar atau PDF</span><input id="bpdlh-transfer-proof" type="file" accept="image/*,application/pdf" onChange={(event) => { setTransferProof(event.target.files?.[0] ?? null); setError(""); }} className="block w-full rounded-xl border border-slate-200 bg-white p-2 text-[10px] file:mr-2 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-[10px] file:font-bold file:text-blue-700" /></label>
-                  {transferProof && <p className="truncate rounded-lg bg-white px-3 py-2 text-[10px] font-semibold text-emerald-800">Dipilih: {transferProof.name}</p>}
-                  <label htmlFor="bpdlh-transfer-description" className="grid gap-1.5 text-xs font-bold text-slate-700">Deskripsi transfer <span className="font-normal text-rose-600">Wajib diisi</span><textarea id="bpdlh-transfer-description" value={transferDescription} onChange={(event) => { setTransferDescription(event.target.value); setError(""); }} placeholder="Nominal, tanggal, tujuan, atau keterangan penyaluran..." rows={4} className="w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-normal leading-relaxed outline-none focus:border-blue-400" /></label>
+                {pendingDecision === "Disetujui" ? <div className="mt-4 grid gap-3 rounded-xl border border-emerald-100 bg-emerald-50/50 p-4"><div><h4 className="text-sm font-extrabold text-emerald-900">Konfirmasi persetujuan</h4><p className="mt-1 text-[10px] leading-relaxed text-emerald-800">Bukti transfer dan rincian pencairan dapat dilengkapi pada form Kirim Dana setelah pengajuan disetujui.</p></div>
                   {error && <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[10px] text-rose-700">{error}</p>}
                   <div className="grid grid-cols-2 gap-2"><button type="button" disabled={pending} onClick={() => setPendingDecision(null)} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50">Kembali</button><button type="button" disabled={pending} onClick={() => void decide("Disetujui")} className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-60"><CheckIcon width={15} height={15} />{pending ? "Menyimpan…" : "Konfirmasi"}</button></div>
                 </div> : <>

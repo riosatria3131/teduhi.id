@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { MailIcon, PlusIcon, SearchIcon, TrashIcon, UserIcon, WhatsAppIcon } from "@/components/icons";
+import { MailIcon, PhoneIcon, PlusIcon, SearchIcon, TrashIcon, UserIcon } from "@/components/icons";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 
 type OfficerContact = {
@@ -23,6 +23,12 @@ const EMPTY_FORM: ContactForm = {
   status: "Aktif",
 };
 const fieldClass = "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-400";
+
+function getPhoneHref(phone: string) {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length < 3 || /^0+$/.test(digits)) return null;
+  return `tel:${digits}`;
+}
 
 export function AdminOfficerContacts() {
   const [contacts, setContacts] = useState<OfficerContact[]>([]);
@@ -170,7 +176,7 @@ export function AdminOfficerContacts() {
 
       {formOpen && <form onSubmit={saveContact} className="grid gap-3 border-b border-blue-100 bg-blue-50/50 p-4 sm:grid-cols-2 lg:grid-cols-3">
         <label className="grid gap-1 text-xs font-bold text-slate-600">Nama instansi<input required maxLength={120} value={form.department} onChange={(event) => setForm((current) => ({ ...current, department: event.target.value }))} className={fieldClass} placeholder="Contoh: BPBD Kota Bogor" /></label>
-        <label className="grid gap-1 text-xs font-bold text-slate-600">Nomor WhatsApp untuk tautan chat<input required type="tel" maxLength={30} value={form.whatsapp} onChange={(event) => setForm((current) => ({ ...current, whatsapp: event.target.value }))} className={fieldClass} placeholder="Contoh: 081234567890" /></label>
+        <label className="grid gap-1 text-xs font-bold text-slate-600">Nomor telepon<input required type="tel" maxLength={30} value={form.whatsapp} onChange={(event) => setForm((current) => ({ ...current, whatsapp: event.target.value }))} className={fieldClass} placeholder="Contoh: 112 (darurat nasional)" /></label>
         <label className="grid gap-1 text-xs font-bold text-slate-600">Email<input type="email" maxLength={254} value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} className={fieldClass} placeholder="petugas@instansi.go.id" /></label>
         <label className="grid gap-1 text-xs font-bold text-slate-600 sm:col-span-2">Wilayah tugas<input required maxLength={180} value={form.service_area} onChange={(event) => setForm((current) => ({ ...current, service_area: event.target.value }))} className={fieldClass} placeholder="Contoh: Kecamatan Bogor Barat" /></label>
         <label className="grid gap-1 text-xs font-bold text-slate-600">Status<select value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as ContactForm["status"] }))} className={fieldClass}><option>Aktif</option><option>Nonaktif</option></select></label>
@@ -182,12 +188,11 @@ export function AdminOfficerContacts() {
 
       <div className="grid gap-3 p-4 sm:p-5">
         {visibleContacts.map((contact) => {
-          const whatsappNumber = contact.whatsapp.replace(/\D/g, "").replace(/^0/, "62");
-          const whatsappHref = `https://wa.me/${whatsappNumber}`;
+          const phoneHref = getPhoneHref(contact.whatsapp);
           const isActive = contact.status === "Aktif";
           const contactIconClass = "inline-flex size-10 items-center justify-center rounded-lg";
           return <article key={contact.id} className="grid gap-4 rounded-xl border border-slate-100 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-            <div className="flex min-w-0 items-start gap-3"><span className="grid size-11 shrink-0 place-items-center rounded-full bg-blue-50 text-blue-700"><UserIcon width={20} height={20} /></span><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="font-extrabold text-[#102a61]">{contact.department}</h3><span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{contact.status}</span></div><p className="mt-1 text-xs text-slate-500">Wilayah tugas: <span className="font-semibold text-slate-700">{contact.service_area}</span></p><div className="mt-3 flex flex-wrap gap-2">{contact.email && (isActive ? <a href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(contact.email.trim())}`} target="_blank" rel="noreferrer" aria-label={`Kirim email ke ${contact.email}`} title={`Buka Gmail untuk mengirim email ke ${contact.email}`} className={`${contactIconClass} bg-blue-50 text-blue-700 hover:bg-blue-100`}><MailIcon width={18} height={18} /></a> : <span aria-label="Email tidak tersedia karena petugas nonaktif" title="Petugas nonaktif" className={`${contactIconClass} cursor-not-allowed bg-slate-100 text-slate-400`}><MailIcon width={18} height={18} /></span>)}{isActive ? <a href={whatsappHref} target="_blank" rel="noreferrer" aria-label={`Hubungi ${contact.department} melalui WhatsApp`} title="Hubungi melalui WhatsApp" className={`${contactIconClass} bg-emerald-50 text-emerald-700 hover:bg-emerald-100`}><WhatsAppIcon width={19} height={19} /></a> : <span aria-label="WhatsApp tidak tersedia karena petugas nonaktif" title="Petugas nonaktif" className={`${contactIconClass} cursor-not-allowed bg-slate-100 text-slate-400`}><WhatsAppIcon width={19} height={19} /></span>}</div></div></div>
+            <div className="flex min-w-0 items-start gap-3"><span className="grid size-11 shrink-0 place-items-center rounded-full bg-blue-50 text-blue-700"><UserIcon width={20} height={20} /></span><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="font-extrabold text-[#102a61]">{contact.department}</h3><span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{contact.status}</span></div><p className="mt-1 text-xs text-slate-500">Wilayah tugas: <span className="font-semibold text-slate-700">{contact.service_area}</span></p><div className="mt-3 flex flex-wrap gap-2">{contact.email && (isActive ? <a href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(contact.email.trim())}`} target="_blank" rel="noreferrer" aria-label={`Kirim email ke ${contact.email}`} title={`Buka Gmail untuk mengirim email ke ${contact.email}`} className={`${contactIconClass} bg-blue-50 text-blue-700 hover:bg-blue-100`}><MailIcon width={18} height={18} /></a> : <span aria-label="Email tidak tersedia karena petugas nonaktif" title="Petugas nonaktif" className={`${contactIconClass} cursor-not-allowed bg-slate-100 text-slate-400`}><MailIcon width={18} height={18} /></span>)}{phoneHref && (isActive ? <a href={phoneHref} aria-label={`Telepon ${contact.department} di ${contact.whatsapp}`} title={`Telepon ${contact.whatsapp}`} className={`${contactIconClass} bg-emerald-50 text-emerald-700 hover:bg-emerald-100`}><PhoneIcon width={19} height={19} /></a> : <span aria-label="Telepon tidak tersedia karena petugas nonaktif" title="Petugas nonaktif" className={`${contactIconClass} cursor-not-allowed bg-slate-100 text-slate-400`}><PhoneIcon width={19} height={19} /></span>)}</div></div></div>
             <div className="flex flex-wrap gap-2 sm:justify-end"><button type="button" onClick={() => openEditForm(contact)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">Edit</button><button type="button" onClick={() => void toggleStatus(contact)} className="rounded-lg border border-blue-200 px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-50">{contact.status === "Aktif" ? "Nonaktifkan" : "Aktifkan"}</button><button type="button" onClick={() => void deleteContact(contact)} aria-label={`Hapus kontak ${contact.department}`} className="grid size-9 place-items-center rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50"><TrashIcon width={16} height={16} /></button></div>
           </article>;
         })}

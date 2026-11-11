@@ -24,7 +24,7 @@ const guidanceItems = [
 
 export function PortalHomeGuidance() {
   return (
-    <section aria-labelledby="resident-information-title" className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_8px_30px_-26px_rgba(16,39,92,0.45)] sm:rounded-3xl sm:p-6">
+    <section aria-labelledby="resident-information-title" className="rounded-2xl border border-white/70 bg-white/90 p-4 shadow-[0_8px_30px_-26px_rgba(16,39,92,0.45)] backdrop-blur-lg sm:rounded-3xl sm:p-6">
       <div className="flex items-start gap-3">
         <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-700"><ShieldCheckIcon width={21} height={21} /></span>
         <div className="min-w-0">
@@ -35,7 +35,7 @@ export function PortalHomeGuidance() {
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
         {guidanceItems.map(({ title, description, Icon, tone }) => (
-          <article key={title} className="flex min-w-0 gap-3 rounded-xl border border-slate-100 bg-[#fbfdff] p-3.5 sm:p-4">
+          <article key={title} className="flex min-w-0 gap-3 rounded-xl border border-blue-100/70 bg-white/55 p-3.5 sm:p-4">
             <span className={`grid size-9 shrink-0 place-items-center rounded-lg ${tone}`}><Icon width={18} height={18} /></span>
             <div className="min-w-0">
               <h3 className="text-sm font-bold text-[#102a61]">{title}</h3>
@@ -43,7 +43,7 @@ export function PortalHomeGuidance() {
             </div>
           </article>
         ))}
-        <Link href="/portal/riwayat" className="flex min-w-0 gap-3 rounded-xl border border-slate-100 bg-[#fbfdff] p-3.5 transition hover:border-blue-200 hover:bg-blue-50/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 sm:p-4">
+        <Link href="/portal/riwayat" className="flex min-w-0 gap-3 rounded-xl border border-blue-100/70 bg-white/55 p-3.5 transition hover:border-blue-200 hover:bg-white/75 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 sm:p-4">
           <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-blue-50 text-blue-700"><ClockIcon width={18} height={18} /></span>
           <span className="min-w-0">
             <span className="block text-sm font-bold text-[#102a61]">Pantau perkembangan</span>
@@ -53,9 +53,6 @@ export function PortalHomeGuidance() {
         </Link>
       </div>
 
-      <p className="mt-4 rounded-xl bg-amber-50 px-3.5 py-3 text-xs leading-relaxed text-amber-900">
-        Utamakan keselamatan. Untuk keadaan darurat, hubungi layanan darurat setempat.
-      </p>
     </section>
   );
 }

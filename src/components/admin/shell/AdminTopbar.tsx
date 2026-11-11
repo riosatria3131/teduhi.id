@@ -15,7 +15,7 @@ export function AdminTopbar() {
   }, []);
 
   return <>
-    <header className="sticky top-0 z-20 flex min-h-[68px] items-center justify-between gap-3 border-b border-slate-100 bg-white/95 px-4 backdrop-blur sm:px-6 lg:h-[72px] lg:px-8 xl:px-10">
+    <header className="sticky top-0 z-20 flex min-h-[68px] items-center justify-between gap-3 border-b border-white/65 bg-white/45 px-4 backdrop-blur sm:px-6 lg:h-[72px] lg:px-8 xl:px-10">
       <Link href="/admin" aria-label="Dashboard TEDUHI" className="flex shrink-0 items-center gap-2 lg:hidden"><LogoMark size={30} /><span className="text-sm font-extrabold text-[#102a61]">TEDUHI</span></Link>
       <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-4">
         <AdminNotificationBell />

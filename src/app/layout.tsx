@@ -18,6 +18,10 @@ export const metadata: Metadata = {
   title: "TEDUHI — Suara Warga, Kota Lebih Baik",
   description:
     "Laporkan jalan berlubang, lampu mati, sampah menumpuk, dan fasilitas umum rusak lainnya. Pantau perbaikannya sampai selesai.",
+  icons: {
+    icon: [{ url: "/logo.webp", type: "image/webp" }],
+    apple: [{ url: "/logo.webp", type: "image/webp" }],
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

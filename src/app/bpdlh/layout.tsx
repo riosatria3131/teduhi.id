@@ -4,7 +4,7 @@ import { BpdlhTopbar } from "./_components/BpdlhTopbar";
 
 export default function BpdlhLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#f7faff]">
+    <div className="min-h-screen bg-[#f7faff] bg-[url('/baground.webp')] bg-cover bg-center bg-fixed">
       <BpdlhSidebar />
       <div className="lg:pl-64">
         <BpdlhTopbar />

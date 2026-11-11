@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BellIcon } from "@/components/icons";
-import { getAllLocalReports, subscribeToLocalReports, type LocalReport } from "@/lib/portal-store";
-import { getBpdlhReportSubmissions } from "@/lib/bpdlh-report-submissions";
+import { getBpdlhReportSubmissions, type BpdlhReportSubmission } from "@/lib/bpdlh-report-submissions";
+import { subscribeToBudgetChanges } from "@/lib/bpdlh-budget-store";
 
 const SEEN_KEY = "teduhi:bpdlh-seen-citizen-reports";
 
@@ -18,31 +18,38 @@ function getSeenIds() {
 }
 
 export function BpdlhNotifications() {
-  const [reports, setReports] = useState<LocalReport[]>([]);
-  const [pendingReviewCount, setPendingReviewCount] = useState(0);
+  const [submissions, setSubmissions] = useState<BpdlhReportSubmission[]>([]);
   const [seenIds, setSeenIds] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function closeOnOutsideClick(event: PointerEvent) {
+      if (event.target instanceof Node && !containerRef.current?.contains(event.target)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    return () => document.removeEventListener("pointerdown", closeOnOutsideClick);
+  }, [open]);
 
   useEffect(() => {
     let active = true;
     const refresh = async () => {
       try {
-        const nextReports = await getAllLocalReports();
-        if (active) setReports(nextReports.filter((report) => report.status === "Menunggu Verifikasi"));
+        // Only records explicitly sent by the main admin exist in this table.
+        // A citizen report in the general reports table is not a BPDLH request.
+        const nextSubmissions = await getBpdlhReportSubmissions();
+        if (active) setSubmissions(nextSubmissions.filter((submission) => submission.submissionStatus === "Menunggu Review"));
       } catch {
-        if (active) setReports([]);
-      }
-      try {
-        const submissions = await getBpdlhReportSubmissions();
-        if (active) setPendingReviewCount(submissions.filter((submission) => submission.submissionStatus === "Menunggu Review").length);
-      } catch {
-        if (active) setPendingReviewCount(0);
+        if (active) setSubmissions([]);
       }
     };
     const syncSeen = () => setSeenIds(getSeenIds());
     void refresh();
     syncSeen();
-    const unsubscribe = subscribeToLocalReports(() => void refresh());
+    const unsubscribe = subscribeToBudgetChanges(() => void refresh());
     const poll = window.setInterval(() => void refresh(), 20000);
     window.addEventListener("storage", syncSeen);
     return () => {
@@ -53,8 +60,8 @@ export function BpdlhNotifications() {
     };
   }, []);
 
-  const unreadReportCount = reports.filter((report) => !seenIds.includes(report.id)).length;
-  const notificationCount = pendingReviewCount + unreadReportCount;
+  const unreadSubmissions = submissions.filter((submission) => !seenIds.includes(submission.reportId));
+  const notificationCount = unreadSubmissions.length;
 
   function saveToInbox(reportId: string) {
     const next = [...new Set([...seenIds, reportId])];
@@ -66,33 +73,35 @@ export function BpdlhNotifications() {
     }
   }
 
+  function closeNotifications() {
+    setOpen(false);
+  }
+
   return (
-    <div className="relative">
+    <div ref={containerRef} className="relative">
       <button type="button" aria-label={`Notifikasi${notificationCount ? `, ${notificationCount} belum dibuka` : ""}`} aria-expanded={open} onClick={() => setOpen((current) => !current)} className="relative grid size-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-50">
         <BellIcon width={16} height={16} />
         {notificationCount > 0 && <span className="absolute -right-0.5 -top-0.5 grid min-h-4 min-w-4 place-items-center rounded-full bg-rose-500 px-1 text-[8px] font-extrabold text-white">{notificationCount > 9 ? "9+" : notificationCount}</span>}
       </button>
       {open && <>
-        <button type="button" aria-label="Tutup notifikasi" onClick={() => setOpen(false)} className="fixed inset-0 z-30 cursor-default" />
         <section aria-label="Notifikasi BPDLH" className="absolute right-0 top-11 z-40 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-100 bg-white shadow-xl">
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
             <h2 className="text-xs font-extrabold text-[#102a61]">Notifikasi</h2>
             <span className="text-[10px] text-slate-500">{notificationCount} belum dibuka</span>
           </div>
           <ul className="max-h-80 overflow-y-auto divide-y divide-slate-100">
-            {pendingReviewCount > 0 && <li><Link href="/bpdlh/pengajuan" onClick={() => setOpen(false)} className="block px-4 py-3 transition hover:bg-blue-50/60"><span className="flex items-start justify-between gap-3"><span className="text-[11px] font-bold text-[#102a61]">Pengajuan menunggu review</span><span className="rounded-full bg-rose-500 px-1.5 py-0.5 text-[8px] font-extrabold text-white">{pendingReviewCount > 9 ? "9+" : pendingReviewCount}</span></span><span className="mt-1 block text-[10px] text-slate-500">{pendingReviewCount} pengajuan perlu ditinjau di Kotak Masuk Pengajuan.</span></Link></li>}
-            {reports.length === 0 && pendingReviewCount === 0 && <li className="px-4 py-5 text-center text-[11px] text-slate-500">Belum ada notifikasi baru.</li>}
-            {reports.slice(0, 8).map((report) => (
-              <li key={report.id}>
-                <Link href={`/bpdlh/pengajuan#laporan-${encodeURIComponent(report.id)}`} onClick={() => { saveToInbox(report.id); setOpen(false); }} className="block px-4 py-3 transition hover:bg-blue-50/60">
-                  <span className="flex items-start justify-between gap-3"><span className="text-[11px] font-bold text-[#102a61]">{report.title}</span>{!seenIds.includes(report.id) && <span className="mt-1 size-2 shrink-0 rounded-full bg-rose-500" />}</span>
-                  <span className="mt-1 block text-[10px] text-slate-500">{report.category} · {report.address}</span>
-                  <span className="mt-1 block text-[9px] text-slate-400">Klik untuk membuka laporan ini di Kotak Masuk Pengajuan</span>
+            {submissions.length === 0 && <li className="px-4 py-5 text-center text-[11px] text-slate-500">Belum ada pengajuan yang dikirim admin utama.</li>}
+            {submissions.slice(0, 8).map((submission) => (
+              <li key={submission.reportId}>
+                <Link href="/bpdlh/pengajuan" onNavigate={closeNotifications} onClick={() => { saveToInbox(submission.reportId); closeNotifications(); }} className="block px-4 py-3 transition hover:bg-blue-50/60">
+                  <span className="flex items-start justify-between gap-3"><span className="text-[11px] font-bold text-[#102a61]">{submission.title}</span>{!seenIds.includes(submission.reportId) && <span className="mt-1 size-2 shrink-0 rounded-full bg-rose-500" />}</span>
+                  <span className="mt-1 block text-[10px] text-slate-500">{submission.category} · {submission.address}</span>
+                  <span className="mt-1 block text-[9px] text-slate-400">Dikirim admin utama · menunggu review BPDLH</span>
                 </Link>
               </li>
             ))}
           </ul>
-          {reports.length > 0 && <Link href="/bpdlh/pengajuan#laporan-warga" onClick={() => { reports.forEach((report) => saveToInbox(report.id)); setOpen(false); }} className="block border-t border-slate-100 px-4 py-3 text-center text-[10px] font-bold text-blue-700 hover:bg-blue-50">Buka semua laporan di kotak masuk</Link>}
+          {submissions.length > 0 && <Link href="/bpdlh/pengajuan" onNavigate={closeNotifications} onClick={() => { submissions.forEach((submission) => saveToInbox(submission.reportId)); closeNotifications(); }} className="block border-t border-slate-100 px-4 py-3 text-center text-[10px] font-bold text-blue-700 hover:bg-blue-50">Buka semua pengajuan terkirim</Link>}
         </section>
       </>}
     </div>

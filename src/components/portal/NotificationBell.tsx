@@ -5,11 +5,11 @@ import { useEffect, useRef, useState } from "react";
 import { BellIcon } from "@/components/icons";
 import { usePortalNotifications } from "./use-portal-notifications";
 
-export function NotificationBell({ compact = false }: { compact?: boolean }) {
+export function NotificationBell({ compact = false, light = false }: { compact?: boolean; light?: boolean }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { notifications, unreadCount, saved, notificationError, saveToInformation } = usePortalNotifications();
-  const recentNotifications = notifications.filter((item) => item.unread && !saved.includes(item.id)).slice(0, 6);
+  const { notifications, unreadCount, notificationError, markRead } = usePortalNotifications();
+  const recentNotifications = notifications.filter((item) => item.unread).slice(0, 6);
 
   useEffect(() => {
     if (!open) return;
@@ -26,10 +26,10 @@ export function NotificationBell({ compact = false }: { compact?: boolean }) {
     <div ref={containerRef} className="relative">
       <button
         type="button"
-        aria-label={unreadCount ? `${unreadCount} informasi belum dibaca` : "Buka notifikasi"}
+        aria-label={unreadCount ? `${unreadCount} pesan belum dibaca` : "Buka notifikasi"}
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
-        className={`relative grid place-items-center rounded-full text-slate-600 transition hover:bg-[#f4f7fc] ${compact ? "size-10" : "size-11 rounded-2xl"}`}
+        className={`relative grid place-items-center rounded-full transition ${light ? "text-white hover:bg-white/20" : "text-slate-600 hover:bg-[#f4f7fc]"} ${compact ? "size-10" : "size-11 rounded-2xl"}`}
       >
         <BellIcon width={compact ? 23 : 20} height={compact ? 23 : 20} />
         {unreadCount > 0 && <span className="absolute -right-1 -top-1 grid min-h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-none text-white ring-2 ring-white">{unreadCount > 99 ? "99+" : unreadCount}</span>}
@@ -40,14 +40,14 @@ export function NotificationBell({ compact = false }: { compact?: boolean }) {
             <h2 className="font-bold text-[#102a61]">Notifikasi</h2>
             {unreadCount > 0 && <span className="rounded-full bg-rose-50 px-2 py-1 text-xs font-bold text-rose-600">{unreadCount} baru</span>}
           </div>
-          <div className="max-h-[min(420px,65vh)] overflow-y-auto">
+          <div className="min-h-[min(240px,40dvh)] max-h-[min(480px,65dvh)] overflow-y-auto overscroll-contain">
             {notificationError && <p role="alert" className="px-4 py-3 text-xs text-rose-700">Notifikasi gagal dimuat: {notificationError}</p>}
             {recentNotifications.length > 0 ? recentNotifications.map((item) => (
               <Link
                 key={item.id}
-                href={`/portal/riwayat/${encodeURIComponent(item.reportId)}`}
+                href="/portal/notifikasi"
                 onClick={() => {
-                  saveToInformation(item.id);
+                  markRead(item.id);
                   setOpen(false);
                 }}
                 className="block border-b border-slate-100 px-4 py-3 transition hover:bg-slate-50"
@@ -63,7 +63,7 @@ export function NotificationBell({ compact = false }: { compact?: boolean }) {
               </Link>
             )) : !notificationError && <p className="px-4 py-6 text-center text-sm text-slate-500">Tidak ada notifikasi baru.</p>}
           </div>
-          <Link href="/portal/notifikasi" onClick={() => setOpen(false)} className="block px-4 py-3 text-center text-sm font-bold text-blue-600 hover:bg-blue-50">Lihat semua informasi</Link>
+          <Link href="/portal/notifikasi" onClick={() => setOpen(false)} className="block px-4 py-3 text-center text-sm font-bold text-blue-600 hover:bg-blue-50">Lihat semua pesan</Link>
         </section>
       </>}
     </div>

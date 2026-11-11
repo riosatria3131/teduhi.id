@@ -1,8 +1,8 @@
 import { getSupabaseClient } from "@/lib/supabaseClient";
 
 type DemoCredentials = { identifier: string; password: string };
-type DemoRegistration = { name: string; email: string; password: string };
-export type DemoSession = { name: string; email: string; role?: string };
+type DemoRegistration = { name: string; email: string; phone: string; password: string };
+export type DemoSession = { name: string; email: string; phone?: string; role?: string };
 
 const SESSION_KEY = "laporkota:demo-session";
 
@@ -13,13 +13,13 @@ export function getDemoDashboardPath(role?: string): string {
   return "/portal";
 }
 
-export async function registerDemoAccount({ name, email, password }: DemoRegistration): Promise<{ ok: boolean; message: string; redirectToLogin: boolean }> {
+export async function registerDemoAccount({ name, email, phone, password }: DemoRegistration): Promise<{ ok: boolean; message: string; redirectToLogin: boolean }> {
   const normalizedEmail = email.trim().toLowerCase();
   const { data, error } = await getSupabaseClient().auth.signUp({
     email: normalizedEmail,
     password,
     options: {
-      data: { nama: name.trim(), no_telepon: null, alamat: null },
+      data: { nama: name.trim(), no_telepon: phone.trim(), alamat: null },
     },
   });
 
@@ -63,7 +63,7 @@ export async function registerDemoAccount({ name, email, password }: DemoRegistr
     if (!profile) {
       return { ok: false, message: "Akun dibuat, tetapi profil belum tersedia. Terapkan migrasi trigger profil Supabase.", redirectToLogin: false };
     }
-    cacheSession({ name: name.trim(), email: normalizedEmail, role: "warga" });
+    cacheSession({ name: name.trim(), email: normalizedEmail, phone: phone.trim(), role: "warga" });
   }
 
   return {
@@ -86,7 +86,7 @@ export async function signInDemoAccount({ identifier, password }: DemoCredential
 
   const { data: profile, error: profileError } = await getSupabaseClient()
     .from("profiles")
-    .select("nama,email,role,is_active")
+    .select("nama,email,no_telepon,role,is_active")
     .eq("id", data.user.id)
     .single();
   if (profileError) {
@@ -113,6 +113,7 @@ export async function signInDemoAccount({ identifier, password }: DemoCredential
     email: typeof profile.email === "string" && profile.email.trim()
       ? profile.email
       : data.user.email || normalizedEmail,
+    phone: typeof profile.no_telepon === "string" ? profile.no_telepon : undefined,
     role,
   };
   cacheSession(session);
@@ -139,7 +140,7 @@ export async function completeGoogleSignIn(): Promise<{ ok: boolean; message: st
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("nama,email,role,is_active")
+    .select("nama,email,no_telepon,role,is_active")
     .eq("id", user.id)
     .single();
   if (profileError || !profile) {
@@ -162,6 +163,7 @@ export async function completeGoogleSignIn(): Promise<{ ok: boolean; message: st
       ? profile.nama
       : typeof metadataName === "string" && metadataName.trim() ? metadataName : "Warga",
     email: typeof profile.email === "string" && profile.email.trim() ? profile.email : user.email ?? "",
+    phone: typeof profile.no_telepon === "string" ? profile.no_telepon : undefined,
     role,
   });
   return { ok: true, message: "Berhasil masuk dengan Google.", role };
@@ -176,13 +178,14 @@ export function getDemoSession(): DemoSession | null {
   try {
     const raw = localStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(SESSION_KEY);
     if (!raw) return null;
-    const session = JSON.parse(raw) as { name?: unknown; email?: unknown; role?: unknown };
+    const session = JSON.parse(raw) as { name?: unknown; email?: unknown; phone?: unknown; role?: unknown };
     if (typeof session.name !== "string" || !session.name.trim() || typeof session.email !== "string") return null;
     localStorage.setItem(SESSION_KEY, JSON.stringify(session));
     sessionStorage.removeItem(SESSION_KEY);
     return {
       name: session.name,
       email: session.email,
+      phone: typeof session.phone === "string" ? session.phone : undefined,
       role: typeof session.role === "string" ? session.role : undefined,
     };
   } catch {
@@ -209,11 +212,11 @@ export async function updateDemoProfile(profile: DemoSession): Promise<void> {
 
   const { error } = await getSupabaseClient()
     .from("profiles")
-    .update({ nama: profile.name.trim() })
+    .update({ nama: profile.name.trim(), no_telepon: profile.phone?.trim() || null })
     .eq("id", user.id);
   if (error) throw error;
   const currentSession = getDemoSession();
-  cacheSession({ name: profile.name.trim(), email: user.email ?? profile.email, role: currentSession?.role });
+  cacheSession({ name: profile.name.trim(), email: user.email ?? profile.email, phone: profile.phone?.trim(), role: currentSession?.role });
 }
 
 export async function signOutDemoAccount(): Promise<void> {

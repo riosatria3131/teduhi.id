@@ -1,13 +1,10 @@
-import { ArrowDownIcon, CameraIcon, CheckIcon } from "./icons";
+"use client";
 
-const STEPS = [
-  { no: "01", title: "Foto", text: "Ambil foto kerusakan, tulis patokan lokasinya, lalu periksa sebelum dikirim." },
-  { no: "02", title: "Verifikasi", text: "Pemerintah memeriksa validitas laporan di dasbor admin." },
-  { no: "03", title: "Perbaikan", text: "Petugas dinas turun ke lokasi untuk melakukan perbaikan." },
-  { no: "04", title: "Selesai", text: "Bukti hasil perbaikan diunggah dan status berubah menjadi transparan." },
-];
+import { ArrowDownIcon, CameraIcon, CheckIcon } from "./icons";
+import { useLandingPageContent } from "@/lib/landing-page-content";
 
 export function PhotoToReport() {
+  const content = useLandingPageContent();
   return (
     <section id="cara-kerja" aria-labelledby="judul-alur" className="mx-auto max-w-[1440px] px-5 py-16 sm:px-8 lg:px-12 2xl:px-16 md:py-24">
       <div className="grid items-start gap-10 md:gap-12 lg:grid-cols-2">
@@ -62,23 +59,23 @@ export function PhotoToReport() {
         {/* Teks */}
         <div>
           <p className="text-[13px] font-extrabold tracking-[0.2em] text-orange-700 uppercase">
-            Dari foto menjadi laporan
+            {content.howItWorksEyebrow}
           </p>
           <h2
             id="judul-alur"
             className="mt-4 text-2xl leading-[1.15] font-extrabold tracking-[-0.03em] text-orange-700 text-balance sm:text-3xl"
           >
-            Anda cukup memotret. Laporan ikut tersusun.
+            {content.howItWorksHeading}
           </h2>
           <p className="mt-5 max-w-xl text-sm leading-6 text-muted">
-            Foto bencana, tambah deskripsi dan beri lokasinya, lalu periksa sebelum dikirim.
+            {content.howItWorksDescription}
           </p>
 
           <ol className="mt-9 divide-y divide-line border-y border-line">
-            {STEPS.map((s) => (
-              <li key={s.no} className="flex gap-4 py-5.5">
+            {content.howItWorksSteps.map((s, index) => (
+              <li key={`${s.title}-${index}`} className="flex gap-4 py-5.5">
                 <span className="mt-0.5 grid h-8 w-11 shrink-0 place-items-center rounded-full bg-orange-100 text-xs font-extrabold text-orange-700">
-                  {s.no}
+                  {String(index + 1).padStart(2, "0")}
                 </span>
                 <div>
                   <h3 className="text-base font-bold text-orange-700">{s.title}</h3>

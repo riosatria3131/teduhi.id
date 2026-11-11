@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { getSupabaseClient } from "@/lib/supabaseClient";
+import { getPhoneHref } from "@/lib/phone-contact";
 
 type Resident = {
   id: string;
   nama: string | null;
   email: string | null;
+  no_telepon: string | null;
   created_at: string | null;
   is_active: boolean;
 };
@@ -35,7 +37,7 @@ export function AdminResidentsTable() {
       try {
         const { data, error } = await getSupabaseClient()
           .from("profiles")
-          .select("id, nama, email, created_at, is_active")
+          .select("id, nama, email, no_telepon, created_at, is_active")
           .eq("role", "warga")
           .order("created_at", { ascending: false });
         if (error) throw error;
@@ -55,7 +57,7 @@ export function AdminResidentsTable() {
 
   const filteredResidents = useMemo(() => residents.filter((resident) => {
     const status = resident.is_active ? "Aktif" : "Nonaktif";
-    const matchesSearch = `${resident.nama ?? ""} ${resident.email ?? ""}`.toLowerCase().includes(query.trim().toLowerCase());
+    const matchesSearch = `${resident.nama ?? ""} ${resident.email ?? ""} ${resident.no_telepon ?? ""}`.toLowerCase().includes(query.trim().toLowerCase());
     return matchesSearch && (filter === "Semua Status" || status === filter);
   }), [filter, query, residents]);
   const pageCount = Math.max(1, Math.ceil(filteredResidents.length / 5));
@@ -97,16 +99,18 @@ export function AdminResidentsTable() {
       {actionError && <p role="alert" className="mx-4 mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 sm:mx-5">Status akun gagal diperbarui: {actionError}</p>}
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] text-left text-sm">
-          <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500"><tr><th className="w-12 px-4 py-3 text-center">No</th><th className="px-4 py-3 font-extrabold">Nama</th><th className="px-4 py-3 font-extrabold">Email</th><th className="px-4 py-3 font-extrabold">Tanggal Daftar</th><th className="px-4 py-3 font-extrabold">Status</th><th className="px-4 py-3 text-right font-extrabold">Aksi</th></tr></thead>
+        <table className="w-full min-w-[820px] text-left text-sm">
+          <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500"><tr><th className="w-12 px-4 py-3 text-center">No</th><th className="px-4 py-3 font-extrabold">Nama</th><th className="px-4 py-3 font-extrabold">Email</th><th className="px-4 py-3 font-extrabold">Nomor HP</th><th className="px-4 py-3 font-extrabold">Tanggal Daftar</th><th className="px-4 py-3 font-extrabold">Status</th><th className="px-4 py-3 text-right font-extrabold">Aksi</th></tr></thead>
           <tbody className="divide-y divide-slate-100">
-            {loading && <tr><td colSpan={6} className="px-4 py-10 text-center text-sm text-slate-500">Memuat data warga…</td></tr>}
+            {loading && <tr><td colSpan={7} className="px-4 py-10 text-center text-sm text-slate-500">Memuat data warga…</td></tr>}
             {!loading && !loadError && visibleResidents.map((resident, index) => {
               const status = resident.is_active ? "Aktif" : "Nonaktif";
+              const phoneHref = getPhoneHref(resident.no_telepon);
               return <tr key={resident.id} className="transition hover:bg-slate-50/70">
                 <td className="px-4 py-3.5 text-center text-xs text-slate-400">{(page - 1) * 5 + index + 1}</td>
                 <td className="px-4 py-3.5 font-bold text-[#102a61]">{resident.nama?.trim() || "Warga"}</td>
                 <td className="px-4 py-3.5 text-slate-600">{resident.email || "-"}</td>
+                <td className="px-4 py-3.5">{phoneHref ? <a href={phoneHref} className="font-semibold text-emerald-700 hover:underline">{resident.no_telepon}</a> : resident.no_telepon ? <span>{resident.no_telepon}</span> : <span className="text-slate-400">Belum diisi</span>}</td>
                 <td className="px-4 py-3.5 text-slate-600">{formatJoinedDate(resident.created_at)}</td>
                 <td className="px-4 py-3.5"><span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${resident.is_active ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>{status}</span></td>
                 <td className="px-4 py-3.5 text-right"><div className="relative inline-block text-left">
@@ -115,7 +119,7 @@ export function AdminResidentsTable() {
                 </div></td>
               </tr>;
             })}
-            {!loading && !loadError && visibleResidents.length === 0 && <tr><td colSpan={6} className="px-4 py-10 text-center text-sm text-slate-500">Tidak ada data warga yang cocok.</td></tr>}
+            {!loading && !loadError && visibleResidents.length === 0 && <tr><td colSpan={7} className="px-4 py-10 text-center text-sm text-slate-500">Tidak ada data warga yang cocok.</td></tr>}
           </tbody>
         </table>
       </div>

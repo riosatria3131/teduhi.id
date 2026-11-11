@@ -1,3 +1,6 @@
+import { getSupabaseClient } from "@/lib/supabaseClient";
+import { INDONESIAN_ISLANDS, type IndonesianIsland } from "@/lib/admin/island-region";
+
 export type BudgetAllocation = {
   id: string;
   name: string;
@@ -8,6 +11,7 @@ export type BudgetAllocation = {
 
 export type BudgetPayoutItem = {
   name: string;
+  unitPrice?: number;
   quantity: number;
   unit: string;
   subtotal: number;
@@ -17,201 +21,197 @@ export type BudgetPayout = {
   id: string;
   allocationId: string;
   allocationName: string;
+  applicationId: string;
   application: string;
   amount: number;
   purpose: string;
-  status: "Processing";
+  status: "Processing" | "Success" | "Failed";
   createdAt: string;
   receiptName?: string;
   items?: BudgetPayoutItem[];
 };
 
-type StoredReceipt = { id: string; file: Blob; fileName: string; mimeType: string };
+export type ApprovedBudgetApplication = { id: string; title: string };
+export type BudgetIslandUsage = Record<IndonesianIsland, number> & { unknown: number };
+export type BudgetPeriodUsageRecord = {
+  periodType: "monthly" | "yearly";
+  periodStart: string;
+  island: IndonesianIsland | "unknown";
+  spentTotal: number;
+};
 
-type BudgetState = { allocations: BudgetAllocation[]; payouts: BudgetPayout[] };
+type AllocationRecord = {
+  id: string;
+  name: string;
+  description: string;
+  budget: number | string;
+  spent: number | string;
+};
 
-const STORAGE_KEY = "teduhi:bpdlh-budget-state";
-const LEGACY_ALLOCATIONS_KEY = "teduhi:bpdlh-budget-allocations";
-const CHANGED_EVENT = "teduhi:bpdlh-budget-data-changed";
-const RECEIPT_DATABASE = "teduhi-bpdlh-receipts";
-const RECEIPT_STORE = "receipts";
+type PayoutRecord = {
+  id: string;
+  allocation_id: string;
+  allocation_name: string;
+  application_id: string;
+  application: string;
+  amount: number | string;
+  purpose: string;
+  status: BudgetPayout["status"];
+  created_at: string;
+  items: { name: string; unit_price: number | string; quantity: number; unit: string; subtotal: number | string }[];
+};
 
-export const initialBudgetAllocations: BudgetAllocation[] = [
-  { id: "logistik-darurat", name: "Logistik & Sembako Darurat", description: "Pemenuhan kebutuhan dasar korban bencana", budget: 50_000_000_000, spent: 35_000_000_000 },
-  { id: "kesehatan-medis", name: "Kesehatan & Obat-obatan Medis", description: "Layanan kesehatan dan obat-obatan untuk korban", budget: 30_000_000_000, spent: 12_000_000_000 },
-  { id: "operasional-sar", name: "Operasional & Evaluasi Tim SAR", description: "Operasional tim SAR dan evaluasi korban", budget: 25_000_000_000, spent: 24_500_000_000 },
-];
-
-function isAllocation(value: unknown): value is BudgetAllocation {
-  if (!value || typeof value !== "object") return false;
-  const item = value as Partial<BudgetAllocation>;
-  return typeof item.id === "string" && typeof item.name === "string"
-    && typeof item.description === "string" && typeof item.budget === "number"
-    && Number.isFinite(item.budget) && typeof item.spent === "number" && Number.isFinite(item.spent);
+export function subscribeToBudgetChanges(onChange: () => void): () => void {
+  const supabase = getSupabaseClient();
+  const channel = supabase.channel(`bpdlh-budget-${crypto.randomUUID()}`)
+    .on("postgres_changes", { event: "*", schema: "public", table: "bpdlh_budget_allocations" }, onChange)
+    .on("postgres_changes", { event: "*", schema: "public", table: "bpdlh_budget_payouts" }, onChange)
+    .on("postgres_changes", { event: "*", schema: "public", table: "bpdlh_budget_payout_items" }, onChange)
+    .on("postgres_changes", { event: "*", schema: "public", table: "bpdlh_report_submissions" }, onChange)
+    .subscribe();
+  return () => { void supabase.removeChannel(channel); };
 }
 
-function isPayout(value: unknown): value is BudgetPayout {
-  if (!value || typeof value !== "object") return false;
-  const item = value as Partial<BudgetPayout>;
-  return typeof item.id === "string" && typeof item.allocationId === "string"
-    && typeof item.allocationName === "string" && typeof item.application === "string"
-    && typeof item.amount === "number" && typeof item.purpose === "string"
-    && item.status === "Processing" && typeof item.createdAt === "string"
-    && (item.receiptName === undefined || typeof item.receiptName === "string")
-    && (item.items === undefined || (Array.isArray(item.items) && item.items.every((entry) =>
-      Boolean(entry) && typeof entry.name === "string" && typeof entry.quantity === "number"
-      && typeof entry.unit === "string" && typeof entry.subtotal === "number")));
+export async function getBudgetAllocations(): Promise<BudgetAllocation[]> {
+  const { data, error } = await getSupabaseClient()
+    .from("bpdlh_budget_allocations")
+    .select("id, name, description, budget, spent")
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return ((data ?? []) as AllocationRecord[]).map((item) => ({
+    id: item.id,
+    name: item.name,
+    description: item.description,
+    budget: Number(item.budget),
+    spent: Number(item.spent),
+  }));
 }
 
-function openReceiptDatabase(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(RECEIPT_DATABASE, 1);
-    request.onupgradeneeded = () => {
-      const database = request.result;
-      if (!database.objectStoreNames.contains(RECEIPT_STORE)) database.createObjectStore(RECEIPT_STORE, { keyPath: "id" });
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error("Penyimpanan bukti nota tidak tersedia."));
+export async function saveBudgetAllocation(allocation: BudgetAllocation): Promise<void> {
+  if (!Number.isSafeInteger(allocation.budget) || allocation.budget <= 0
+    || !Number.isSafeInteger(allocation.spent) || allocation.spent < 0 || allocation.spent > allocation.budget) {
+    throw new Error("Pagu dan realisasi harus berupa angka rupiah bulat, dan realisasi tidak boleh melebihi pagu.");
+  }
+  const supabase = getSupabaseClient();
+  const payload = {
+    id: allocation.id,
+    name: allocation.name.trim(),
+    description: allocation.description.trim(),
+    budget: allocation.budget,
+    spent: allocation.spent,
+  };
+  const result = allocation.id.startsWith("pos-")
+    ? await supabase.from("bpdlh_budget_allocations").insert(payload).select("id").maybeSingle()
+    : await supabase.from("bpdlh_budget_allocations").update(payload).eq("id", allocation.id).select("id").maybeSingle();
+  if (result.error) throw result.error;
+  if (!result.data) throw new Error("Perubahan pos anggaran tidak tersimpan. Periksa akses akun dan coba muat ulang.");
+}
+
+export async function deleteBudgetAllocation(id: string): Promise<void> {
+  const { data, error } = await getSupabaseClient().from("bpdlh_budget_allocations").delete().eq("id", id).select("id").maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Pos anggaran tidak ditemukan atau akun tidak memiliki izin untuk menghapusnya.");
+}
+
+export async function getApprovedBudgetApplications(): Promise<ApprovedBudgetApplication[]> {
+  const { data, error } = await getSupabaseClient()
+    .from("bpdlh_report_submissions")
+    .select("report_id, reports(title)")
+    .eq("status", "Disetujui")
+    .order("reviewed_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).flatMap((record) => {
+    const report = Array.isArray(record.reports) ? record.reports[0] : record.reports;
+    return report?.title ? [{ id: record.report_id, title: report.title }] : [];
   });
 }
 
-async function saveBudgetReceipt(id: string, file: File): Promise<void> {
-  const database = await openReceiptDatabase();
-  try {
-    await new Promise<void>((resolve, reject) => {
-      const transaction = database.transaction(RECEIPT_STORE, "readwrite");
-      transaction.objectStore(RECEIPT_STORE).put({ id, file, fileName: file.name, mimeType: file.type } satisfies StoredReceipt);
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error ?? new Error("Bukti nota gagal disimpan."));
-      transaction.onabort = () => reject(transaction.error ?? new Error("Penyimpanan bukti nota dibatalkan."));
-    });
-  } finally {
-    database.close();
-  }
+export async function getBudgetPayouts(): Promise<BudgetPayout[]> {
+  const { data, error } = await getSupabaseClient()
+    .from("bpdlh_budget_payouts")
+    .select("id, allocation_id, allocation_name, application_id, application, amount, purpose, status, created_at, items:bpdlh_budget_payout_items(name, unit_price, quantity, unit, subtotal)")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return ((data ?? []) as unknown as PayoutRecord[]).map(toBudgetPayout);
 }
 
-export async function getBudgetReceipt(id: string): Promise<StoredReceipt | null> {
-  const database = await openReceiptDatabase();
-  try {
-    return await new Promise((resolve, reject) => {
-      const request = database.transaction(RECEIPT_STORE, "readonly").objectStore(RECEIPT_STORE).get(id);
-      request.onsuccess = () => resolve(request.result ? request.result as StoredReceipt : null);
-      request.onerror = () => reject(request.error ?? new Error("Foto bukti nota tidak dapat dibuka."));
-    });
-  } finally {
-    database.close();
-  }
+export async function getBudgetPayoutsForApplication(applicationId: string): Promise<BudgetPayout[]> {
+  const { data, error } = await getSupabaseClient()
+    .from("bpdlh_budget_payouts")
+    .select("id, allocation_id, allocation_name, application_id, application, amount, purpose, status, created_at, items:bpdlh_budget_payout_items(name, unit_price, quantity, unit, subtotal)")
+    .eq("application_id", applicationId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return ((data ?? []) as unknown as PayoutRecord[]).map(toBudgetPayout);
 }
 
-async function removeBudgetReceipt(id: string): Promise<void> {
-  const database = await openReceiptDatabase();
-  try {
-    await new Promise<void>((resolve, reject) => {
-      const transaction = database.transaction(RECEIPT_STORE, "readwrite");
-      transaction.objectStore(RECEIPT_STORE).delete(id);
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error ?? new Error("Bukti nota gagal dibersihkan."));
-    });
-  } finally {
-    database.close();
-  }
-}
-
-export function getBudgetState(): BudgetState {
-  if (typeof window === "undefined") return { allocations: initialBudgetAllocations, payouts: [] };
-  try {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed: unknown = JSON.parse(stored);
-      if (parsed && typeof parsed === "object") {
-        const state = parsed as { allocations?: unknown; payouts?: unknown };
-        return {
-          allocations: Array.isArray(state.allocations) && state.allocations.every(isAllocation) ? state.allocations : initialBudgetAllocations,
-          payouts: Array.isArray(state.payouts) ? state.payouts.filter(isPayout) : [],
-        };
-      }
-    }
-    const legacy = window.localStorage.getItem(LEGACY_ALLOCATIONS_KEY);
-    if (legacy) {
-      const parsed: unknown = JSON.parse(legacy);
-      if (Array.isArray(parsed) && parsed.every(isAllocation)) return { allocations: parsed, payouts: [] };
-    }
-  } catch {
-    // Use sample data if local storage is unavailable or invalid.
-  }
-  return { allocations: initialBudgetAllocations, payouts: [] };
-}
-
-function saveBudgetState(state: BudgetState) {
-  if (typeof window === "undefined") throw new Error("Penyimpanan anggaran hanya tersedia di browser.");
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  window.dispatchEvent(new Event(CHANGED_EVENT));
-}
-
-export function saveBudgetAllocations(allocations: BudgetAllocation[]) {
-  const current = getBudgetState();
-  saveBudgetState({ ...current, allocations });
-}
-
-export function getBudgetPayouts(): BudgetPayout[] {
-  return getBudgetState().payouts;
-}
-
-export function subscribeToBudgetChanges(onChange: () => void): () => void {
-  if (typeof window === "undefined") return () => undefined;
-  window.addEventListener(CHANGED_EVENT, onChange);
-  window.addEventListener("storage", onChange);
-  return () => {
-    window.removeEventListener(CHANGED_EVENT, onChange);
-    window.removeEventListener("storage", onChange);
+function toBudgetPayout(item: PayoutRecord): BudgetPayout {
+  return {
+    id: item.id,
+    allocationId: item.allocation_id,
+    allocationName: item.allocation_name,
+    applicationId: item.application_id,
+    application: item.application,
+    amount: Number(item.amount),
+    purpose: item.purpose,
+    status: item.status,
+    createdAt: item.created_at,
+    items: item.items.map((detail) => ({
+      name: detail.name,
+      unitPrice: Number(detail.unit_price),
+      quantity: detail.quantity,
+      unit: detail.unit,
+      subtotal: Number(detail.subtotal),
+    })),
   };
+}
+
+export async function getBudgetUsageByIsland(): Promise<BudgetIslandUsage> {
+  const { data, error } = await getSupabaseClient()
+    .from("bpdlh_public_budget_island_usage")
+    .select("island, spent_total");
+  if (error) throw error;
+  const totals = { ...Object.fromEntries(INDONESIAN_ISLANDS.map((island) => [island, 0])), unknown: 0 } as BudgetIslandUsage;
+  for (const row of data ?? []) {
+    if (row.island === "Tidak terpetakan") totals.unknown = Number(row.spent_total);
+    else if (INDONESIAN_ISLANDS.includes(row.island as IndonesianIsland)) {
+      totals[row.island as IndonesianIsland] = Number(row.spent_total);
+    }
+  }
+  return totals;
+}
+
+export async function getBudgetUsageByPeriod(): Promise<BudgetPeriodUsageRecord[]> {
+  const { data, error } = await getSupabaseClient()
+    .from("bpdlh_public_budget_period_usage")
+    .select("period_type, period_start, island, spent_total");
+  if (error) throw error;
+  return (data ?? []).map((row) => ({
+    periodType: row.period_type as BudgetPeriodUsageRecord["periodType"],
+    periodStart: String(row.period_start),
+    island: row.island === "Tidak terpetakan" ? "unknown" : row.island as IndonesianIsland,
+    spentTotal: Number(row.spent_total),
+  }));
 }
 
 export async function recordBudgetPayout(input: {
   allocationId: string;
-  application: string;
+  applicationId: string;
   amount: number;
-  items: BudgetPayoutItem[];
-  receipt: File;
-}): Promise<BudgetPayout> {
-  const state = getBudgetState();
-  const allocation = state.allocations.find((item) => item.id === input.allocationId);
-  if (!allocation) throw new Error("Pos anggaran tidak ditemukan. Muat ulang halaman lalu coba kembali.");
-  const remaining = allocation.budget - allocation.spent;
-  if (!Number.isSafeInteger(input.amount) || input.amount <= 0) throw new Error("Nominal pencairan harus berupa angka rupiah bulat yang lebih besar dari nol.");
-  if (input.amount > remaining) throw new Error("Nominal pencairan melebihi sisa saldo pos anggaran.");
-  if (!input.application.trim()) throw new Error("Pilih kejadian bencana.");
-  if (input.items.length === 0 || input.items.some((item) => !item.name.trim() || !item.unit.trim()
-    || !Number.isSafeInteger(item.quantity) || item.quantity <= 0
-    || !Number.isSafeInteger(item.subtotal) || item.subtotal < 0)) {
-    throw new Error("Lengkapi nama barang, jumlah, satuan, dan subtotal setiap item.");
+  items: (BudgetPayoutItem & { unitPrice: number })[];
+}): Promise<string> {
+  if (!Number.isSafeInteger(input.amount) || input.amount <= 0) {
+    throw new Error("Nominal pencairan harus berupa angka rupiah bulat yang lebih besar dari nol.");
   }
-  const itemsTotal = input.items.reduce((total, item) => total + item.subtotal, 0);
-  if (itemsTotal !== input.amount) throw new Error("Jumlah subtotal barang harus sama dengan Nominal Pencairan.");
-  if (!input.receipt.type.startsWith("image/") || input.receipt.size === 0) throw new Error("Lampirkan foto nota dalam format gambar.");
-  if (input.receipt.size > 8 * 1024 * 1024) throw new Error("Ukuran foto nota maksimal 8 MB.");
-
-  const payout: BudgetPayout = {
-    id: `TRX-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
-    allocationId: allocation.id,
-    allocationName: allocation.name,
-    application: input.application.trim(),
-    amount: input.amount,
-    purpose: input.items.map((item) => `${item.quantity} ${item.unit} ${item.name.trim()}`).join("; "),
-    status: "Processing",
-    createdAt: new Date().toISOString(),
-    receiptName: input.receipt.name,
-    items: input.items.map((item) => ({ ...item, name: item.name.trim(), unit: item.unit.trim() })),
-  };
-  await saveBudgetReceipt(payout.id, input.receipt);
-  try {
-    saveBudgetState({
-      allocations: state.allocations.map((item) => item.id === allocation.id ? { ...item, spent: item.spent + input.amount } : item),
-      payouts: [payout, ...state.payouts],
-    });
-  } catch (error) {
-    await removeBudgetReceipt(payout.id);
-    throw error;
-  }
-  return payout;
+  const { data, error } = await getSupabaseClient().rpc("record_bpdlh_budget_payout", {
+    p_allocation_id: input.allocationId,
+    p_application_id: input.applicationId,
+    p_amount: input.amount,
+    p_items: input.items.map(({ name, unitPrice, quantity, unit, subtotal }) => ({
+      name: name.trim(), unitPrice, quantity, unit: unit.trim(), subtotal,
+    })),
+  });
+  if (error) throw error;
+  if (typeof data !== "string") throw new Error("Database tidak mengembalikan nomor transaksi pencairan.");
+  return data;
 }

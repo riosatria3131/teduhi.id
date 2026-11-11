@@ -9,6 +9,124 @@ import { saveLocalReport } from "@/lib/portal-store";
 
 const fieldClass = "w-full rounded-xl border border-line bg-white px-3.5 py-3 text-sm text-ink outline-none placeholder:text-muted/70 focus:border-brand";
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
+const REGION_API = "https://www.emsifa.com/api-wilayah-indonesia/api";
+
+type RegionOption = { id: string; name: string };
+
+async function fetchRegions(url: string, signal: AbortSignal): Promise<RegionOption[]> {
+  const response = await fetch(url, { signal });
+  if (!response.ok) throw new Error("Data wilayah gagal dimuat. Coba muat ulang halaman.");
+  return await response.json() as RegionOption[];
+}
+
+function RegionDropdown({
+  id,
+  label,
+  value,
+  options,
+  placeholder,
+  loading = false,
+  disabled = false,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  options: RegionOption[];
+  placeholder: string;
+  loading?: boolean;
+  disabled?: boolean;
+  onChange: (option: RegionOption) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const selected = options.find((option) => option.id === value);
+  const filteredOptions = options.filter((option) => option.name.toLocaleLowerCase("id-ID").includes(query.trim().toLocaleLowerCase("id-ID")));
+
+  useEffect(() => {
+    if (!open) return;
+    searchRef.current?.focus();
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+        setQuery("");
+      }
+    }
+    function closeOnOutsideClick(event: PointerEvent) {
+      if (event.target instanceof Node && !containerRef.current?.contains(event.target)) setOpen(false);
+    }
+    window.addEventListener("keydown", closeOnEscape);
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    return () => {
+      window.removeEventListener("keydown", closeOnEscape);
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+    };
+  }, [open]);
+
+  return (
+    <div ref={containerRef} className="relative grid gap-2 text-sm font-bold text-ink">
+      <label htmlFor={id}>{label}</label>
+      <button
+        id={id}
+        type="button"
+        role="combobox"
+        aria-label={label}
+        aria-expanded={open}
+        aria-controls={`${id}-options`}
+        aria-haspopup="listbox"
+        disabled={disabled || loading}
+        onClick={() => {
+          setQuery("");
+          setOpen((current) => !current);
+        }}
+        className={`${fieldClass} flex min-h-12 items-center justify-between gap-3 text-left disabled:cursor-not-allowed disabled:bg-slate-50`}
+      >
+        <span className={`truncate ${selected ? "text-ink" : "text-muted/70"}`}>
+          {loading ? `Memuat ${label.toLowerCase()}…` : selected?.name ?? placeholder}
+        </span>
+        <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className={`size-4 shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`}><path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      </button>
+      {open && <div className="absolute inset-x-0 top-full z-50 mt-1.5 flex max-h-[240px] flex-col overflow-hidden rounded-xl border border-line bg-white shadow-[0_12px_30px_-12px_rgba(16,39,92,0.35)]">
+        <div className="shrink-0 border-b border-line bg-white p-2">
+          <input
+            ref={searchRef}
+            type="search"
+            role="searchbox"
+            aria-label={`Cari ${label.toLowerCase()}`}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.stopPropagation();
+                setOpen(false);
+                setQuery("");
+              }
+            }}
+            placeholder={`Cari ${label.toLowerCase()}…`}
+            className="h-9 w-full rounded-lg border border-line px-3 text-sm font-normal text-ink outline-none placeholder:text-muted/70 focus:border-brand"
+          />
+        </div>
+        <div id={`${id}-options`} role="listbox" aria-label={label} className="min-h-0 overflow-y-auto overscroll-contain p-1.5">
+        {filteredOptions.map((option) => <button
+          key={option.id}
+          type="button"
+          role="option"
+          aria-selected={value === option.id}
+          onClick={() => {
+            onChange(option);
+            setOpen(false);
+            setQuery("");
+          }}
+          className={`flex min-h-10 w-full items-center rounded-lg px-3 text-left text-sm font-medium transition-colors ${value === option.id ? "bg-brand-soft text-brand-dark" : "text-ink hover:bg-paper"}`}
+        >{option.name}</button>)}
+        {filteredOptions.length === 0 && <p className="px-3 py-2 text-xs font-normal text-muted">{options.length ? "Tidak ada hasil yang cocok." : "Pilihan tidak tersedia."}</p>}
+        </div>
+      </div>}
+    </div>
+  );
+}
 
 export function ReportForm() {
   const router = useRouter();
@@ -22,14 +140,63 @@ export function ReportForm() {
   const categoryPickerRef = useRef<HTMLDivElement>(null);
   const categoryButtonRef = useRef<HTMLButtonElement>(null);
   const firstCategoryRef = useRef<HTMLButtonElement>(null);
-  const [province, setProvince] = useState("");
-  const [city, setCity] = useState("");
-  const [district, setDistrict] = useState("");
+  const [provinces, setProvinces] = useState<RegionOption[]>([]);
+  const [regencies, setRegencies] = useState<RegionOption[]>([]);
+  const [districts, setDistricts] = useState<RegionOption[]>([]);
+  const [idProvinsi, setIdProvinsi] = useState("");
+  const [idKabupaten, setIdKabupaten] = useState("");
+  const [idKecamatan, setIdKecamatan] = useState("");
+  const [loadingProvinces, setLoadingProvinces] = useState(true);
+  const [loadingRegencies, setLoadingRegencies] = useState(false);
+  const [loadingDistricts, setLoadingDistricts] = useState(false);
+  const [regionError, setRegionError] = useState("");
+  const [regionRetry, setRegionRetry] = useState(0);
   const [address, setAddress] = useState("");
 
   useEffect(() => () => {
     if (photoPreview) URL.revokeObjectURL(photoPreview);
   }, [photoPreview]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetchRegions(`${REGION_API}/provinces.json`, controller.signal)
+      .then(setProvinces)
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted) setRegionError(error instanceof Error ? error.message : "Data provinsi gagal dimuat.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoadingProvinces(false);
+      });
+    return () => controller.abort();
+  }, [regionRetry]);
+
+  useEffect(() => {
+    if (!idProvinsi) return;
+    const controller = new AbortController();
+    void fetchRegions(`${REGION_API}/regencies/${idProvinsi}.json`, controller.signal)
+      .then(setRegencies)
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted) setRegionError(error instanceof Error ? error.message : "Data kabupaten/kota gagal dimuat.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoadingRegencies(false);
+      });
+    return () => controller.abort();
+  }, [idProvinsi, regionRetry]);
+
+  useEffect(() => {
+    if (!idKabupaten) return;
+    const controller = new AbortController();
+    void fetchRegions(`${REGION_API}/districts/${idKabupaten}.json`, controller.signal)
+      .then(setDistricts)
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted) setRegionError(error instanceof Error ? error.message : "Data kecamatan gagal dimuat.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoadingDistricts(false);
+      });
+    return () => controller.abort();
+  }, [idKabupaten, regionRetry]);
 
   useEffect(() => {
     if (!categoryOpen) return;
@@ -68,10 +235,6 @@ export function ReportForm() {
       setNotice("Ukuran foto maksimal 5 MB.");
       setPhoto(null);
       setPhotoPreview("");
-      setProvince("");
-      setCity("");
-      setDistrict("");
-      setAddress("");
       return;
     }
     setPhoto(file);
@@ -82,15 +245,27 @@ export function ReportForm() {
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
+    const requiredAreaFields = [
+      { id: "province", value: idProvinsi, label: "provinsi" },
+      { id: "city", value: idKabupaten, label: "kabupaten/kota" },
+      { id: "district", value: idKecamatan, label: "kecamatan" },
+      { id: "address", value: address, label: "alamat detail" },
+    ];
+    const missingArea = requiredAreaFields.find((field) => !field.value.trim());
+    if (missingArea) {
+      setNotice(`Lengkapi ${missingArea.label} sebelum mengirim laporan.`);
+      document.getElementById(missingArea.id)?.focus();
+      return;
+    }
     if (!form.reportValidity()) return;
     if (!category) {
       setNotice("Pilih kategori bencana.");
       categoryButtonRef.current?.focus();
       return;
     }
-    if (!province || !city || !district) {
+    if (!idProvinsi || !idKabupaten || !idKecamatan) {
       setNotice("Lengkapi provinsi, kabupaten/kota, dan kecamatan.");
-      document.getElementById(!province ? "province" : !city ? "city" : "district")?.focus();
+      document.getElementById(!idProvinsi ? "province" : !idKabupaten ? "city" : "district")?.focus();
       return;
     }
     if (!photo) {
@@ -99,14 +274,18 @@ export function ReportForm() {
     }
 
     const data = new FormData(form);
+    const reportTitle = `${category} di ${String(data.get("address") ?? "").trim()}`.slice(0, 120);
+    const provinceName = provinces.find((item) => item.id === idProvinsi)?.name ?? "";
+    const cityName = regencies.find((item) => item.id === idKabupaten)?.name ?? "";
+    const districtName = districts.find((item) => item.id === idKecamatan)?.name ?? "";
     setPending(true);
     setNotice("");
     try {
       const report = await saveLocalReport({
-        title: String(data.get("title") ?? ""),
+        title: reportTitle,
         category: String(data.get("category") ?? ""),
         description: String(data.get("description") ?? ""),
-        district: `${String(data.get("district") ?? "")}, ${String(data.get("city") ?? "")}, ${String(data.get("province") ?? "")}`,
+        district: `${districtName}, ${cityName}, ${provinceName}`,
         address: String(data.get("address") ?? ""),
         latitude: "",
         longitude: "",
@@ -115,9 +294,11 @@ export function ReportForm() {
       setTicket(report.id);
       form.reset();
       setCategory("");
-      setProvince("");
-      setCity("");
-      setDistrict("");
+      setIdProvinsi("");
+      setIdKabupaten("");
+      setIdKecamatan("");
+      setLoadingRegencies(false);
+      setLoadingDistricts(false);
       setAddress("");
       setPhoto(null);
       setPhotoPreview("");
@@ -143,16 +324,16 @@ export function ReportForm() {
     );
   }
 
-  const mapSearch = [address, district, city, province].filter(Boolean).join(", ") || "Bogor, Jawa Barat";
+  const provinceName = provinces.find((item) => item.id === idProvinsi)?.name ?? "";
+  const cityName = regencies.find((item) => item.id === idKabupaten)?.name ?? "";
+  const districtName = districts.find((item) => item.id === idKecamatan)?.name ?? "";
+  const mapSearch = [address, districtName, cityName, provinceName].filter(Boolean).join(", ") || "Bogor, Jawa Barat";
   const encodedMapSearch = encodeURIComponent(mapSearch);
 
   return (
     <form onSubmit={onSubmit} className="grid gap-5 rounded-2xl border border-line bg-white p-5 shadow-[0_8px_28px_-24px_rgba(16,39,92,0.45)] sm:p-7">
       <div className="grid gap-5 md:grid-cols-2">
-        <label className="grid content-start gap-2 text-sm font-bold text-ink"><span>Judul laporan <span className="text-danger">*</span></span>
-          <input name="title" required minLength={5} maxLength={120} className={fieldClass} placeholder="Contoh: Jalan berlubang dekat sekolah" />
-        </label>
-        <div ref={categoryPickerRef} className="relative z-20 grid content-start gap-2 text-sm font-bold text-ink">
+        <div ref={categoryPickerRef} className="relative z-20 grid content-start gap-2 text-sm font-bold text-ink md:col-span-2">
           <span id="category-label">Kategori bencana <span className="text-danger">*</span></span>
           <input type="hidden" name="category" value={category} />
           <button
@@ -200,48 +381,81 @@ export function ReportForm() {
         <div className="grid gap-2 text-sm font-bold text-ink md:col-span-2"><p>Foto bukti <span className="text-danger">*</span></p>
           <label className="hidden min-h-16 cursor-pointer items-center gap-3 rounded-xl border border-dashed border-brand/40 bg-paper/60 px-4 py-3 font-normal text-muted hover:border-brand md:flex">
             {photoPreview ? <img src={photoPreview} alt="Pratinjau foto yang dipilih" className="size-12 shrink-0 rounded-lg object-cover" /> : <UploadIcon width={22} height={22} className="shrink-0 text-brand" />}
-            <span className="min-w-0"><span className="block truncate text-sm font-semibold text-ink">{photo?.name ?? "Pilih foto dari perangkat"}</span><span className="block text-xs">JPG atau PNG, maksimal 5 MB</span></span>
-            <input type="file" accept="image/jpeg,image/png" className="sr-only" onChange={onPhotoChange} />
+            <span className="min-w-0"><span className="block truncate text-sm font-semibold text-ink">{photo?.name ?? "Ambil foto bukti"}</span><span className="block text-xs">JPG atau PNG, maksimal 5 MB</span></span>
+            <input type="file" accept="image/jpeg,image/png" capture="environment" className="sr-only" onChange={onPhotoChange} />
           </label>
           <div className="grid gap-4 rounded-xl border border-dashed border-brand/40 bg-paper/60 px-4 py-4 font-normal text-muted md:hidden">
             <span className="flex min-w-0 items-center gap-3">
               {photoPreview ? <img src={photoPreview} alt="Pratinjau foto yang dipilih" className="size-14 shrink-0 rounded-lg object-cover" /> : <UploadIcon width={22} height={22} className="shrink-0 text-brand" />}
-              <span className="min-w-0"><span className="block truncate text-sm font-semibold text-ink">{photo?.name ?? "Ambil foto atau pilih dari perangkat"}</span><span className="block text-xs">JPG atau PNG, maksimal 5 MB</span></span>
+              <span className="min-w-0"><span className="block truncate text-sm font-semibold text-ink">{photo?.name ?? "Ambil foto bukti"}</span><span className="block text-xs">JPG atau PNG, maksimal 5 MB</span></span>
             </span>
-            <span className="grid grid-cols-2 gap-2">
+            <span className="grid grid-cols-1 gap-2">
               <label className="flex min-h-11 min-w-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg border border-brand/30 bg-white px-1.5 py-1 text-center text-[11px] leading-tight font-semibold text-brand-dark hover:bg-brand-soft">
                 <CameraIcon width={17} height={17} /> Ambil foto
                 <input type="file" accept="image/jpeg,image/png" capture="environment" className="sr-only" onChange={onPhotoChange} />
               </label>
-              <label className="flex min-h-11 min-w-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg border border-line bg-white px-1.5 py-1 text-center text-[11px] leading-tight font-semibold text-ink hover:bg-paper">
-                <UploadIcon width={17} height={17} /> Ambil dari galeri
-                <input type="file" accept="image/jpeg,image/png" className="sr-only" onChange={onPhotoChange} />
-              </label>
             </span>
           </div>
         </div>
-        <label className="grid gap-2 text-sm font-bold text-ink md:col-span-2">Deskripsi bencana <span className="text-danger">*</span>
-          <textarea name="description" required minLength={10} rows={4} className={fieldClass} placeholder="Beri keterangan" />
+        <label className="grid gap-2 text-sm font-bold text-ink md:col-span-2">Deskripsi bencana <span className="font-normal text-muted">(opsional)</span>
+          <textarea name="description" rows={4} className={fieldClass} placeholder="Beri keterangan" />
         </label>
       </div>
 
       <div className="rounded-2xl bg-paper/70 p-4 sm:p-5">
         <div className="flex items-center gap-2"><PinIcon width={19} height={19} className="text-brand" /><h2 className="font-extrabold text-ink">Lokasi kerusakan</h2></div>
-        <p className="mt-1 text-xs text-muted">Ketik provinsi, kabupaten/kota, kecamatan, dan alamat atau patokan terdekat.</p>
+        <p className="mt-1 text-xs text-muted">Pilih provinsi, kabupaten/kota, dan kecamatan. Isi alamat detail atau patokan secara terpisah.</p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label htmlFor="province" className="grid gap-2 text-sm font-bold text-ink">Provinsi <span className="text-danger">*</span>
-            <input id="province" name="province" required value={province} onChange={(event) => setProvince(event.target.value)} className={fieldClass} placeholder="Ketik nama provinsi" autoComplete="address-level1" />
-          </label>
-          <label htmlFor="city" className="grid gap-2 text-sm font-bold text-ink">Kabupaten/Kota <span className="text-danger">*</span>
-            <input id="city" name="city" required value={city} onChange={(event) => setCity(event.target.value)} className={fieldClass} placeholder="Ketik nama kabupaten/kota" autoComplete="address-level2" />
-          </label>
-          <label htmlFor="district" className="grid gap-2 text-sm font-bold text-ink">Kecamatan <span className="text-danger">*</span>
-            <input id="district" name="district" required value={district} onChange={(event) => setDistrict(event.target.value)} className={fieldClass} placeholder="Ketik nama kecamatan" />
-          </label>
-          <label className="grid gap-2 text-sm font-bold text-ink">Alamat detail <span className="text-danger">*</span>
-            <input name="address" required minLength={5} value={address} onChange={(event) => setAddress(event.target.value)} className={fieldClass} placeholder="Nama jalan, nomor, atau patokan" />
+          <RegionDropdown
+            id="province"
+            label="Provinsi"
+            value={idProvinsi}
+            options={provinces}
+            placeholder="Pilih provinsi"
+            loading={loadingProvinces}
+            onChange={(option) => {
+              setRegionError("");
+              setIdProvinsi(option.id);
+              setIdKabupaten("");
+              setIdKecamatan("");
+              setLoadingRegencies(true);
+              setLoadingDistricts(false);
+              setRegencies([]);
+              setDistricts([]);
+            }}
+          />
+          <RegionDropdown
+            id="city"
+            label="Kabupaten/Kota"
+            value={idKabupaten}
+            options={regencies}
+            placeholder={idProvinsi ? "Pilih kabupaten/kota" : "Pilih provinsi terlebih dahulu"}
+            loading={loadingRegencies}
+            disabled={!idProvinsi}
+            onChange={(option) => {
+              setRegionError("");
+              setIdKabupaten(option.id);
+              setIdKecamatan("");
+              setLoadingDistricts(true);
+              setDistricts([]);
+            }}
+          />
+          <RegionDropdown
+            id="district"
+            label="Kecamatan"
+            value={idKecamatan}
+            options={districts}
+            placeholder={idKabupaten ? "Pilih kecamatan" : "Pilih kabupaten/kota terlebih dahulu"}
+            loading={loadingDistricts}
+            disabled={!idKabupaten}
+            onChange={(option) => setIdKecamatan(option.id)}
+          />
+          <label className="grid gap-2 text-sm font-bold text-ink">Alamat detail
+            <input id="address" name="address" required minLength={5} value={address} onChange={(event) => setAddress(event.target.value)} className={fieldClass} placeholder="Nama jalan, nomor, atau patokan" />
           </label>
         </div>
+        {regionError && <p role="alert" className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{regionError} <button type="button" onClick={() => { setRegionError(""); setLoadingProvinces(true); setLoadingRegencies(Boolean(idProvinsi)); setLoadingDistricts(Boolean(idKabupaten)); setRegionRetry((value) => value + 1); }} className="font-bold underline">Coba lagi</button></p>}
+        <p className="mt-3 text-xs leading-relaxed text-muted">Daftar kabupaten/kota dan kecamatan akan dimuat setelah pilihan wilayah sebelumnya dipilih.</p>
       </div>
       <div aria-live="polite" role={notice ? "alert" : undefined} className={notice ? "rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-900" : "hidden"}>{notice}</div>
       <section aria-labelledby="map-preview-title" className="grid gap-3 rounded-2xl border border-line bg-white p-4 sm:p-5">

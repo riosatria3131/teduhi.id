@@ -14,6 +14,7 @@ export type BpdlhReportSubmission = {
   photoUrl: string | null;
   createdAt: string;
   reporter: string;
+  reporterPhone: string;
   reportStatus: string;
   submissionStatus: BpdlhSubmissionStatus;
   adminNote: string;
@@ -35,7 +36,7 @@ type ReportRecord = {
   photo_path: string | null;
   status: string | null;
   created_at: string | null;
-  profiles: { nama?: string | null } | Array<{ nama?: string | null }> | null;
+  profiles: { nama?: string | null; no_telepon?: string | null } | Array<{ nama?: string | null; no_telepon?: string | null }> | null;
 };
 
 type SubmissionRecord = {
@@ -65,6 +66,7 @@ function toSubmission(record: SubmissionRecord): BpdlhReportSubmission | null {
     photoUrl: report.photo_path,
     createdAt: report.created_at || record.submitted_at,
     reporter: profile?.nama?.trim() || "Warga",
+    reporterPhone: profile?.no_telepon?.trim() || "",
     reportStatus: report.status || "Tidak diketahui",
     submissionStatus: record.status,
     adminNote: record.admin_note || "",
@@ -81,7 +83,7 @@ export async function getMainAdminBpdlhSubmissions(): Promise<BpdlhReportSubmiss
   const supabase = getSupabaseClient();
   const [{ data: reportData, error: reportError }, { data: submissionData, error: submissionError }] = await Promise.all([
     supabase.from("reports")
-      .select("id, title, category, description, address, district, photo_path, status, created_at, profiles(nama)")
+      .select("id, title, category, description, address, district, photo_path, status, created_at, profiles(nama,no_telepon)")
       .order("created_at", { ascending: false }),
     supabase.from("bpdlh_report_submissions")
       .select("report_id, status, admin_note, bpdlh_note, transfer_description, transfer_proof_path, transfer_proof_name, submitted_at, reviewed_at"),
@@ -105,6 +107,7 @@ export async function getMainAdminBpdlhSubmissions(): Promise<BpdlhReportSubmiss
       photoUrl: report.photo_path,
       createdAt: report.created_at || "",
       reporter: profile?.nama?.trim() || "Warga",
+      reporterPhone: profile?.no_telepon?.trim() || "",
       reportStatus: report.status || "Tidak diketahui",
       submissionStatus: submission?.status ?? "Belum Diajukan",
       adminNote: submission?.admin_note || "",
@@ -128,7 +131,7 @@ export async function getMainAdminBpdlhSubmissions(): Promise<BpdlhReportSubmiss
 export async function getBpdlhReportSubmissions(): Promise<BpdlhReportSubmission[]> {
   const { data, error } = await getSupabaseClient()
     .from("bpdlh_report_submissions")
-    .select("report_id, status, admin_note, bpdlh_note, transfer_description, transfer_proof_path, transfer_proof_name, submitted_at, reviewed_at, reports(id,title,category,description,address,district,photo_path,status,created_at,profiles(nama))")
+    .select("report_id, status, admin_note, bpdlh_note, transfer_description, transfer_proof_path, transfer_proof_name, submitted_at, reviewed_at, reports(id,title,category,description,address,district,photo_path,status,created_at,profiles(nama,no_telepon))")
     .order("submitted_at", { ascending: false });
   if (error) throw error;
   const supabase = getSupabaseClient();
@@ -176,42 +179,124 @@ export async function reviewBpdlhReport(
   reportId: string,
   status: Exclude<BpdlhSubmissionStatus, "Belum Diajukan" | "Menunggu Review">,
   note: string,
-  transfer?: { description: string; proof: File },
 ): Promise<void> {
   const supabase = getSupabaseClient();
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) throw new Error("Sesi admin BPDLH tidak ditemukan. Silakan masuk kembali.");
-  if (status === "Disetujui" && (!transfer?.description.trim() || !transfer.proof)) {
-    throw new Error("Lengkapi deskripsi dan bukti transfer sebelum menyetujui pengajuan.");
-  }
 
-  let uploadedPath: string | null = null;
-  if (status === "Disetujui" && transfer) {
-    const safeName = transfer.proof.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    uploadedPath = `${user.id}/bpdlh-transfer/${reportId}/${crypto.randomUUID()}-${safeName}`;
-    const { error: uploadError } = await supabase.storage.from(TRANSFER_PROOF_BUCKET).upload(uploadedPath, transfer.proof, {
-      contentType: transfer.proof.type || "application/octet-stream",
-      upsert: false,
-    });
-    if (uploadError) throw new Error(`Bukti transfer gagal diunggah: ${uploadError.message}`);
-  }
-
-  const { data, error } = await supabase.from("bpdlh_report_submissions")
-    .update({
-      status,
-      bpdlh_note: note.trim(),
-      transfer_description: status === "Disetujui" ? transfer?.description.trim() ?? "" : "",
-      transfer_proof_path: status === "Disetujui" ? uploadedPath : null,
-      transfer_proof_name: status === "Disetujui" ? transfer?.proof.name ?? null : null,
-      reviewed_by: user.id,
-      reviewed_at: new Date().toISOString(),
-    })
+  const { data: current, error: lookupError } = await supabase
+    .from("bpdlh_report_submissions")
+    .select("status")
     .eq("report_id", reportId)
+    .maybeSingle();
+  if (lookupError) throw lookupError;
+  if (!current) throw new Error("Pengajuan tidak ditemukan. Muat ulang kotak masuk BPDLH.");
+  // Another tab/admin may have completed the same decision while this dialog was open.
+  // Treat the same result as success so a repeated click is safe and idempotent.
+  if (current.status === status) return;
+  if (current.status !== "Menunggu Review") {
+    throw new Error(`Status pengajuan sudah berubah menjadi “${current.status}”. Muat ulang kotak masuk sebelum memberi keputusan lain.`);
+  }
+
+  const update = {
+    status,
+    bpdlh_note: note.trim(),
+    reviewed_by: user.id,
+    reviewed_at: new Date().toISOString(),
+    ...(status !== "Disetujui" ? { transfer_description: "", transfer_proof_path: null, transfer_proof_name: null } : {}),
+  };
+  const { data, error } = await supabase.from("bpdlh_report_submissions").update(update)
+    .eq("report_id", reportId)
+    .eq("status", "Menunggu Review")
     .select("report_id")
     .maybeSingle();
-  if (error || !data) {
-    if (uploadedPath) await supabase.storage.from(TRANSFER_PROOF_BUCKET).remove([uploadedPath]);
-    if (error) throw error;
-    throw new Error("Pengajuan tidak ditemukan atau akun ini tidak memiliki izin untuk memberikan keputusan.");
+  if (error) throw error;
+  if (data) return;
+
+  // Re-read to distinguish a concurrent successful decision from an RLS/role denial.
+  const { data: latest, error: latestError } = await supabase
+    .from("bpdlh_report_submissions")
+    .select("status")
+    .eq("report_id", reportId)
+    .maybeSingle();
+  if (latestError) throw latestError;
+  if (latest?.status === status) return;
+  if (latest && latest.status !== "Menunggu Review") {
+    throw new Error(`Status pengajuan berubah menjadi “${latest.status}” sebelum keputusan tersimpan. Muat ulang kotak masuk.`);
   }
+  throw new Error("Keputusan belum tersimpan. Pastikan akun memiliki role BPDLH (admin_bpdlh, admin_keuangan, atau bpdlh), lalu coba lagi.");
+}
+
+export async function saveBpdlhTransferEvidence(reportId: string, description: string, proof: File): Promise<void> {
+  const trimmedDescription = description.trim();
+  if (!trimmedDescription) throw new Error("Deskripsi transfer wajib diisi.");
+  if (!proof) throw new Error("Pilih bukti transfer sebelum mengirim pencairan.");
+
+  const supabase = getSupabaseClient();
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) throw new Error("Sesi admin BPDLH tidak ditemukan. Silakan masuk kembali.");
+
+  const safeName = proof.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const uploadedPath = `${user.id}/bpdlh-transfer/${reportId}/${crypto.randomUUID()}-${safeName}`;
+  const { error: uploadError } = await supabase.storage.from(TRANSFER_PROOF_BUCKET).upload(uploadedPath, proof, {
+    contentType: proof.type || "application/octet-stream",
+    upsert: false,
+  });
+  if (uploadError) throw new Error(`Bukti transfer gagal diunggah: ${uploadError.message}`);
+
+  const { data: previousPath, error } = await supabase.rpc("save_bpdlh_transfer_evidence", {
+    p_report_id: reportId,
+    p_description: trimmedDescription,
+    p_proof_path: uploadedPath,
+    p_proof_name: proof.name,
+  });
+  if (error) {
+    await supabase.storage.from(TRANSFER_PROOF_BUCKET).remove([uploadedPath]);
+    throw new Error(`Bukti transfer gagal disimpan: ${error.message}`);
+  }
+  if (typeof previousPath === "string" && previousPath && previousPath !== uploadedPath) {
+    await supabase.storage.from(TRANSFER_PROOF_BUCKET).remove([previousPath]);
+  }
+}
+
+export async function getAdminBpdlhTransferProofUrl(reportId: string): Promise<string> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("bpdlh_report_submissions")
+    .select("transfer_proof_path")
+    .eq("report_id", reportId)
+    .eq("status", "Disetujui")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data?.transfer_proof_path) throw new Error("Bukti transfer belum tersedia untuk pengajuan ini.");
+
+  const { data: signedData, error: signedError } = await supabase.storage
+    .from(TRANSFER_PROOF_BUCKET)
+    .createSignedUrl(data.transfer_proof_path, 60 * 5);
+  if (signedError) throw signedError;
+  return signedData.signedUrl;
+}
+
+export async function getResidentBpdlhTransferEvidence(reportId: string): Promise<{
+  description: string;
+  proofUrl: string;
+  proofName: string;
+} | null> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc("get_resident_bpdlh_transfer_evidence", {
+    p_report_id: reportId,
+  });
+  if (error) throw error;
+  const evidence = Array.isArray(data) ? data[0] : data;
+  if (!evidence?.transfer_proof_path) return null;
+
+  const { data: signedData, error: signedError } = await supabase.storage
+    .from(TRANSFER_PROOF_BUCKET)
+    .createSignedUrl(evidence.transfer_proof_path, 60 * 60);
+  if (signedError) throw signedError;
+  return {
+    description: evidence.transfer_description || "",
+    proofUrl: signedData.signedUrl,
+    proofName: evidence.transfer_proof_name || "Bukti transfer",
+  };
 }

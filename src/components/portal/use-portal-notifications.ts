@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 
 const READ_KEY = "laporkota:demo-read-notifications";
-const SAVED_KEY = "laporkota:information-notifications";
+const DISMISSED_KEY = "laporkota:dismissed-notifications";
 const READ_CHANGED = "laporkota:notifications-read-changed";
 type StatusNotification = {
   id: string;
@@ -74,11 +74,11 @@ function getReadIds() {
   }
 }
 
-function getSavedIds() {
+function getDismissedIds() {
   if (typeof window === "undefined") return [];
   try {
-    const saved = localStorage.getItem(SAVED_KEY);
-    return saved ? JSON.parse(saved) as string[] : [];
+    const saved: unknown = JSON.parse(localStorage.getItem(DISMISSED_KEY) ?? "[]");
+    return Array.isArray(saved) ? saved.filter((id): id is string => typeof id === "string") : [];
   } catch {
     return [];
   }
@@ -86,7 +86,7 @@ function getSavedIds() {
 
 export function usePortalNotifications() {
   const [read, setRead] = useState<string[]>([]);
-  const [saved, setSaved] = useState<string[]>([]);
+  const [dismissed, setDismissed] = useState<string[]>([]);
   const [statusNotifications, setStatusNotifications] = useState<StatusNotification[]>([]);
   const [notificationError, setNotificationError] = useState("");
 
@@ -111,7 +111,7 @@ export function usePortalNotifications() {
     let inFlight = false;
     const syncState = () => {
       setRead(getReadIds());
-      setSaved(getSavedIds());
+      setDismissed(getDismissedIds());
     };
     const refresh = () => {
       if (inFlight || document.visibilityState !== "visible") return;
@@ -138,16 +138,32 @@ export function usePortalNotifications() {
     };
   }, [refreshStatusNotifications]);
 
-  const notifications = statusNotifications;
+  // Only surface unread notifications. Applying the local read state before
+  // rendering prevents stale responses from bringing opened messages back.
+  const notifications = statusNotifications.filter(
+    (item) => item.unread && !read.includes(item.id) && !dismissed.includes(item.id),
+  );
 
-  const unreadCount = notifications.filter((item) => item.unread && !read.includes(item.id)).length;
+  const unreadCount = notifications.length;
 
   function markRead(id: string) {
     const next = read.includes(id) ? read : [...read, id];
     setRead(next);
     if (id.startsWith("status:")) {
       const notificationId = id.slice("status:".length);
-      void getSupabaseClient().from("report_notifications").update({ is_read: true }).eq("id", notificationId);
+      void getSupabaseClient().auth.getSession().then(({ data, error }) => {
+        if (error) throw error;
+        if (!data.session?.user) return;
+        return getSupabaseClient()
+          .from("report_notifications")
+          .update({ is_read: true })
+          .eq("id", notificationId)
+          .eq("user_id", data.session.user.id);
+      }).then((result) => {
+        if (result?.error) throw result.error;
+      }).catch((error: unknown) => {
+        setNotificationError(error instanceof Error ? error.message : "Status baca notifikasi gagal disimpan.");
+      });
       setStatusNotifications((current) => {
         const nextNotifications = current.map((item) => item.id === id ? { ...item, unread: false } : item);
         if (cachedStatusNotifications) cachedStatusNotifications = { ...cachedStatusNotifications, data: nextNotifications };
@@ -162,23 +178,27 @@ export function usePortalNotifications() {
     }
   }
 
-  function saveToInformation(id: string) {
-    if (saved.includes(id)) return;
-    const next = [...saved, id];
-    setSaved(next);
-    markRead(id);
-    try {
-      localStorage.setItem(SAVED_KEY, JSON.stringify(next));
-      window.dispatchEvent(new Event(READ_CHANGED));
-    } catch {
-      // UI tetap berfungsi jika penyimpanan lokal tidak tersedia.
-    }
-  }
-
   function markAllRead() {
     const next = notifications.map((item) => item.id);
     setRead(next);
-    void getSupabaseClient().from("report_notifications").update({ is_read: true }).eq("is_read", false);
+    const notificationIds = next
+      .filter((id) => id.startsWith("status:"))
+      .map((id) => id.slice("status:".length));
+    if (notificationIds.length > 0) {
+      void getSupabaseClient().auth.getSession().then(({ data, error }) => {
+        if (error) throw error;
+        if (!data.session?.user) return;
+        return getSupabaseClient()
+          .from("report_notifications")
+          .update({ is_read: true })
+          .in("id", notificationIds)
+          .eq("user_id", data.session.user.id);
+      }).then((result) => {
+        if (result?.error) throw result.error;
+      }).catch((error: unknown) => {
+        setNotificationError(error instanceof Error ? error.message : "Status baca notifikasi gagal disimpan.");
+      });
+    }
     setStatusNotifications((current) => {
       const nextNotifications = current.map((item) => ({ ...item, unread: false }));
       if (cachedStatusNotifications) cachedStatusNotifications = { ...cachedStatusNotifications, data: nextNotifications };
@@ -192,5 +212,16 @@ export function usePortalNotifications() {
     }
   }
 
-  return { notifications, unreadCount, read, saved, notificationError, markRead, markAllRead, saveToInformation };
+  function dismiss(id: string) {
+    const next = [...new Set([...getDismissedIds(), id])];
+    setDismissed(next);
+    try {
+      localStorage.setItem(DISMISSED_KEY, JSON.stringify(next));
+      window.dispatchEvent(new Event(READ_CHANGED));
+    } catch {
+      // UI tetap berfungsi jika penyimpanan lokal tidak tersedia.
+    }
+  }
+
+  return { notifications, unreadCount, read, notificationError, markRead, markAllRead, dismiss };
 }

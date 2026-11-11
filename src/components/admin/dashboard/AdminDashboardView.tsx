@@ -12,6 +12,8 @@ import { formatReportCount, getAdminReportMetrics, type AdminReportMetric } from
 import { subscribeToLocalReports } from "@/lib/portal-store";
 import { AdminReportChart } from "./AdminReportChart";
 import { TopDisasterCategories } from "./TopDisasterCategories";
+import { FinanceBudgetSummary } from "./FinanceBudgetSummary";
+import { IslandReportPieChart } from "./IslandReportPieChart";
 
 const metricIcons = [FileIcon, BellIcon, ClockIcon, CheckIcon] as const;
 const metricStyles = {
@@ -96,6 +98,11 @@ export function AdminDashboardView() {
       <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.85fr)]">
         <AdminReportChart />
         <TopDisasterCategories />
+      </div>
+
+      <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:gap-5">
+        <FinanceBudgetSummary />
+        <IslandReportPieChart />
       </div>
 
       <p className="text-center text-[10px] text-slate-400">Statistik laporan dimuat langsung dari database Supabase.</p>

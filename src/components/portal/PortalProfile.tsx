@@ -9,6 +9,7 @@ export function PortalProfile() {
   const router = useRouter();
   const [name, setName] = useState("Warga TEDUHI");
   const [email, setEmail] = useState("warga@example.test");
+  const [phone, setPhone] = useState("");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -17,6 +18,7 @@ export function PortalProfile() {
       if (!session) return;
       setName(session.name);
       setEmail(session.email);
+      setPhone(session.phone ?? "");
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
@@ -25,7 +27,7 @@ export function PortalProfile() {
     event.preventDefault();
     setMessage("");
     try {
-      await updateDemoProfile({ name: name.trim(), email });
+      await updateDemoProfile({ name: name.trim(), email, phone: phone.trim() });
       setMessage("Profil berhasil diperbarui.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Profil gagal diperbarui. Silakan coba lagi.");
@@ -48,6 +50,7 @@ export function PortalProfile() {
         <div className="mt-5 grid gap-4">
           <label className="grid gap-2 text-sm font-bold text-ink">Nama lengkap<input required minLength={2} value={name} onChange={(event) => setName(event.target.value)} className="w-full rounded-xl border border-line px-3.5 py-3 font-normal outline-none focus:border-brand" /></label>
           <label className="grid gap-2 text-sm font-bold text-ink">Email <span className="text-xs font-normal text-muted">Tidak dapat diedit pada mode demo</span><input readOnly type="email" value={email} className="w-full rounded-xl border border-line bg-paper px-3.5 py-3 font-normal text-muted outline-none" /></label>
+          <label className="grid gap-2 text-sm font-bold text-ink">Nomor HP <span className="text-xs font-normal text-muted">Agar admin dapat menghubungi Anda terkait laporan</span><input required type="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} className="w-full rounded-xl border border-line px-3.5 py-3 font-normal outline-none focus:border-brand" /></label>
           {message && <p role="status" className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">{message}</p>}
           <button className="min-h-11 rounded-xl bg-brand px-4 py-2.5 text-sm font-bold text-white hover:bg-brand-dark">Simpan perubahan</button>
           <div className="mt-2 border-t border-line pt-5">

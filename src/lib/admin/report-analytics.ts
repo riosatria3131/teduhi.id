@@ -1,4 +1,5 @@
 import { getSupabaseClient } from "@/lib/supabaseClient";
+import { getIndonesianIsland, type IndonesianIsland } from "@/lib/admin/island-region";
 
 export type ReportTrendPeriod = "monthly" | "yearly";
 export type AdminReportMetric = {
@@ -77,6 +78,34 @@ export async function getAdminReportCategoryCounts(categories: string[]): Promis
     await countReports({ category }),
   ] as const));
   return Object.fromEntries(entries);
+}
+
+export async function getAdminIslandCategoryCounts(island?: IndonesianIsland): Promise<Record<string, number>> {
+  const counts: Record<string, number> = {};
+  const pageSize = 1000;
+  let offset = 0;
+
+  while (true) {
+    const { data, error } = await getSupabaseClient()
+      .from("reports")
+      .select("category,address,district")
+      .order("id")
+      .range(offset, offset + pageSize - 1);
+    if (error) throw error;
+
+    const rows = data ?? [];
+    for (const row of rows) {
+      const location = [row.address, row.district].filter(Boolean).join(", ");
+      if (island && getIndonesianIsland(location) !== island) continue;
+      const category = row.category?.trim() || "Tanpa kategori";
+      counts[category] = (counts[category] ?? 0) + 1;
+    }
+
+    if (rows.length < pageSize) break;
+    offset += pageSize;
+  }
+
+  return counts;
 }
 
 export function formatReportCount(value: number): string {

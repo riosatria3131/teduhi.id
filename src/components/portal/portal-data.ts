@@ -1,5 +1,20 @@
 export type ReportStatus = "Menunggu Verifikasi" | "Terverifikasi" | "Sedang Diproses" | "Selesai" | "Ditolak";
 
+export function getReportStatusDescription(status: ReportStatus): string {
+  switch (status) {
+    case "Menunggu Verifikasi":
+      return "Sedang menunggu konfirmasi admin.";
+    case "Terverifikasi":
+      return "Laporan sudah diverifikasi admin dan menunggu tindak lanjut.";
+    case "Sedang Diproses":
+      return "Laporan sedang ditindaklanjuti oleh petugas.";
+    case "Selesai":
+      return "Laporan telah selesai ditangani.";
+    case "Ditolak":
+      return "Laporan ditolak oleh admin.";
+  }
+}
+
 export type PortalReport = {
   id: string;
   title: string;

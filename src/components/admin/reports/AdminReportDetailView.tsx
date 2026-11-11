@@ -3,10 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowLeftIcon, CalendarIcon, PinIcon, UserIcon } from "@/components/icons";
+import { ArrowLeftIcon, CalendarIcon, PhoneIcon, PinIcon, UserIcon } from "@/components/icons";
 import { AdminPageHeading } from "@/components/admin/shared/AdminPageHeading";
 import { AdminReportStatus } from "@/components/admin/reports/AdminReportStatus";
+import { AdminReportPayoutNotes } from "@/components/admin/reports/AdminReportPayoutNotes";
 import { getAdminReport, getAdminReportStatusHistory, type LocalReport, type ReportStatusHistoryEntry } from "@/lib/portal-store";
+import { getPhoneHref } from "@/lib/phone-contact";
 import type { ReportStatus } from "@/components/portal/portal-data";
 
 type AdminReport = {
@@ -14,6 +16,7 @@ type AdminReport = {
   title: string;
   category: string;
   reporter: string;
+  reporterPhone?: string;
   location: string;
   date: string;
   status: ReportStatus;
@@ -33,6 +36,7 @@ function fromCitizenReport(report: LocalReport): AdminReport {
     title: report.title,
     category: report.category,
     reporter: report.reporterName ?? report.ownerEmail,
+    reporterPhone: report.reporterPhone,
     location: `${report.address}, ${report.district}`,
     date: new Intl.DateTimeFormat("id-ID", { dateStyle: "long", timeStyle: "short" }).format(new Date(report.createdAt)),
     status: report.status,
@@ -89,6 +93,7 @@ export function AdminReportDetailView({ id }: { id: string }) {
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodedMapQuery}`;
   const mapEmbedUrl = `https://maps.google.com/maps?q=${encodedMapQuery}&output=embed`;
   const currentStatusIndex = REPORT_STATUS_STEPS.indexOf(report.status);
+  const reporterPhoneHref = getPhoneHref(report.reporterPhone);
 
   return (
     <div className="grid gap-6">
@@ -133,7 +138,7 @@ export function AdminReportDetailView({ id }: { id: string }) {
             <iframe title={`Peta lokasi laporan ${report.title}`} src={mapEmbedUrl} className="h-44 w-full rounded-xl border-0 sm:h-52" loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
           </section>}
 
-          <div className="mt-6 flex items-center gap-3 rounded-xl bg-slate-50 p-4"><span className="grid size-10 place-items-center rounded-full bg-blue-100 text-blue-700"><UserIcon width={19} height={19} /></span><div><p className="text-sm font-bold text-[#102a61]">{report.reporter}</p><p className="text-xs text-slate-500">Warga · Pelapor</p></div></div>
+          <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 p-4"><span className="grid size-10 place-items-center rounded-full bg-blue-100 text-blue-700"><UserIcon width={19} height={19} /></span><div className="min-w-0 flex-1"><p className="text-sm font-bold text-[#102a61]">{report.reporter}</p><p className="text-xs text-slate-500">Warga · Pelapor</p>{report.reporterPhone && <p className="mt-1 text-xs text-slate-600">Nomor HP: {report.reporterPhone}</p>}</div>{reporterPhoneHref && <a href={reporterPhoneHref} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700"><PhoneIcon width={15} height={15} />Hubungi warga</a>}</div>
         </article>
         <aside className="grid min-w-0 gap-5"><section className="min-w-0 rounded-2xl border border-slate-100 bg-white p-5 shadow-[0_8px_30px_-26px_rgba(16,39,92,0.45)]"><h2 className="font-extrabold text-[#102a61]">Riwayat Status</h2>{historyError && <p role="status" className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800">{historyError}</p>}<ol className="mt-5 grid gap-5 border-l-2 border-blue-100 pl-5">
           {REPORT_STATUS_STEPS.map((step, index) => {
@@ -170,7 +175,7 @@ export function AdminReportDetailView({ id }: { id: string }) {
             if (statusChanged) setHistoryError("Status tersimpan. Tanggal ditampilkan saat ini; riwayat permanen memerlukan migrasi status di Supabase.");
             else setHistoryError("Status tersimpan, tetapi riwayat gagal dimuat ulang.");
           });
-        }} /></section></aside>
+        }} /></section><AdminReportPayoutNotes key={report.id} reportId={report.id} /></aside>
       </div>
     </div>
   );

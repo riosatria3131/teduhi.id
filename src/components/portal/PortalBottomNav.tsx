@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BellIcon, DocumentsIcon, HomeIcon, ListIcon, PlusIcon, UserIcon } from "@/components/icons";
+import { HomeIcon, ListIcon, MessageIcon, PlusIcon, UserIcon } from "@/components/icons";
 
 const items = [
   { href: "/portal", label: "Beranda", Icon: HomeIcon },
   { href: "/portal/riwayat", label: "Laporan", Icon: ListIcon },
   { href: "/portal/buat-laporan", label: "Buat", Icon: PlusIcon, primary: true },
-  { href: "/portal/notifikasi", label: "Informasi", Icon: DocumentsIcon },
+  { href: "/portal/notifikasi", label: "Pesan", Icon: MessageIcon },
   { href: "/portal/profil", label: "Profil", Icon: UserIcon },
 ];
 

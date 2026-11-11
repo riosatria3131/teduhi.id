@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { BellIcon, CheckIcon } from "@/components/icons";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { updateLocalReportStatus } from "@/lib/portal-store";
+import { getAdminBpdlhTransferProofUrl } from "@/lib/bpdlh-report-submissions";
+import { useAdminNotificationPreference } from "@/lib/admin-notification-preference";
 import {
   getBpdlhDecisionNotifications,
   getReadDecisionNotificationIds,
@@ -20,22 +22,79 @@ function formatDecisionTime(value: string) {
 
 function useDecisionNotifications() {
   const [notifications, setNotifications] = useState<BpdlhDecisionNotification[]>([]);
+  const [databaseNotifications, setDatabaseNotifications] = useState<BpdlhDecisionNotification[]>([]);
   const [readIds, setReadIds] = useState<string[]>([]);
 
   useEffect(() => {
+    let active = true;
+    let requestInFlight = false;
     const sync = () => {
       setNotifications(getBpdlhDecisionNotifications());
       setReadIds(getReadDecisionNotificationIds());
+      if (requestInFlight) return;
+      requestInFlight = true;
+      const decisionQuery = getSupabaseClient()
+        .from("bpdlh_report_submissions")
+        .select("report_id, status, bpdlh_note, transfer_description, transfer_proof_name, reviewed_at, reports(title)")
+        .in("status", ["Disetujui", "Perlu Revisi", "Ditolak"])
+        .not("reviewed_at", "is", null)
+        .order("reviewed_at", { ascending: false });
+      void Promise.resolve(decisionQuery)
+        .then(({ data, error }) => {
+          if (!active) return;
+          if (error) throw error;
+          const decisions = (data ?? []).flatMap((record) => {
+            const report = Array.isArray(record.reports) ? record.reports[0] : record.reports;
+            if (!record.reviewed_at || !report) return [];
+            if (record.status !== "Disetujui" && record.status !== "Perlu Revisi" && record.status !== "Ditolak") return [];
+            return [{
+              id: `bpdlh:${record.report_id}:${record.reviewed_at}`,
+              requestId: record.report_id,
+              requestTitle: report.title || "Laporan warga",
+              decision: record.status,
+              note: record.bpdlh_note || "",
+              transferProofName: record.transfer_proof_name || undefined,
+              transferDescription: record.transfer_description || undefined,
+              createdAt: record.reviewed_at,
+            } satisfies BpdlhDecisionNotification];
+          });
+          setDatabaseNotifications(decisions);
+        })
+        .catch(() => {
+          // Keep locally stored messages visible if the decision query is unavailable.
+        })
+        .finally(() => {
+          requestInFlight = false;
+        });
     };
     const timer = window.setTimeout(sync, 0);
     const unsubscribe = subscribeToBpdlhDecisionNotifications(sync);
+    const poll = window.setInterval(sync, 20000);
+    const supabase = getSupabaseClient();
+    const channel = supabase
+      .channel(`admin-bpdlh-decisions-${crypto.randomUUID()}`)
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "bpdlh_report_submissions",
+      }, sync)
+      .subscribe();
+    window.addEventListener("focus", sync);
     return () => {
+      active = false;
       window.clearTimeout(timer);
+      window.clearInterval(poll);
+      window.removeEventListener("focus", sync);
+      void supabase.removeChannel(channel);
       unsubscribe();
     };
   }, []);
 
-  return { notifications, readIds, refresh: () => {
+  const allNotifications = [...databaseNotifications, ...notifications]
+    .filter((item, index, list) => list.findIndex((candidate) => candidate.id === item.id) === index)
+    .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
+
+  return { notifications: allNotifications, readIds, refresh: () => {
     setNotifications(getBpdlhDecisionNotifications());
     setReadIds(getReadDecisionNotificationIds());
   } };
@@ -52,6 +111,7 @@ type PendingCitizenReport = {
 export function AdminNotificationBell() {
   const router = useRouter();
   const { notifications, readIds, refresh } = useDecisionNotifications();
+  const { enabled: notificationsEnabled } = useAdminNotificationPreference();
   const [citizenReports, setCitizenReports] = useState<PendingCitizenReport[]>([]);
   const [reportError, setReportError] = useState("");
   const [openingReportId, setOpeningReportId] = useState<string | null>(null);
@@ -71,6 +131,9 @@ export function AdminNotificationBell() {
   }, [open]);
 
   useEffect(() => {
+    if (notificationsEnabled !== true) {
+      return;
+    }
     let active = true;
     const loadCitizenReports = async () => {
       const { data, error } = await getSupabaseClient()
@@ -104,7 +167,7 @@ export function AdminNotificationBell() {
       window.clearInterval(poll);
       window.removeEventListener("laporkota:reports-changed", refreshOnNewReport);
     };
-  }, [open]);
+  }, [open, notificationsEnabled]);
 
   async function openCitizenReport(report: PendingCitizenReport) {
     setOpeningReportId(report.id);
@@ -130,6 +193,8 @@ export function AdminNotificationBell() {
     refresh();
     setOpen(false);
   }
+
+  if (notificationsEnabled !== true) return null;
 
   return (
     <div ref={containerRef} className="relative">
@@ -169,6 +234,7 @@ export function AdminNotificationBell() {
 
 export function AdminNotificationsView() {
   const { notifications, readIds, refresh } = useDecisionNotifications();
+  const { enabled: notificationsEnabled, error: preferenceError } = useAdminNotificationPreference();
   const [proofError, setProofError] = useState("");
 
   function markAllRead() {
@@ -178,23 +244,16 @@ export function AdminNotificationsView() {
 
   async function openProof(requestId: string) {
     setProofError("");
+    const proofWindow = window.open("about:blank", "_blank");
+    if (!proofWindow) {
+      setProofError("Izinkan pop-up di browser untuk membuka bukti transfer.");
+      return;
+    }
     try {
-      const { getTransferProof } = await import("@/app/bpdlh/_review-store");
-      const proof = await getTransferProof(requestId);
-      if (!proof) {
-        setProofError("Bukti transfer tidak ditemukan di penyimpanan browser ini.");
-        return;
-      }
-      const url = URL.createObjectURL(proof.file);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = proof.fileName;
-      anchor.target = "_blank";
-      anchor.rel = "noreferrer";
-      anchor.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch {
-      setProofError("Bukti transfer tidak dapat dibuka dari browser ini.");
+      proofWindow.location.href = await getAdminBpdlhTransferProofUrl(requestId);
+    } catch (error) {
+      proofWindow.close();
+      setProofError(error instanceof Error ? error.message : "Bukti transfer tidak dapat dibuka.");
     }
   }
 
@@ -202,13 +261,16 @@ export function AdminNotificationsView() {
     <div className="mx-auto grid max-w-4xl gap-4">
       <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white p-5">
         <div><h1 className="text-xl font-extrabold text-[#102a61]">Pusat Informasi</h1><p className="mt-1 text-sm text-slate-500">Keputusan dan tindak lanjut pengajuan dari BPDLH.</p></div>
-        <button type="button" onClick={markAllRead} disabled={notifications.every((item) => readIds.includes(item.id))} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50">Tandai semua dibaca</button>
+        {notificationsEnabled && <button type="button" onClick={markAllRead} disabled={notifications.every((item) => readIds.includes(item.id))} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50">Tandai semua dibaca</button>}
       </header>
-      {proofError && <p role="alert" className="rounded-lg bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-700">{proofError}</p>}
+      {preferenceError && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">Preferensi notifikasi gagal dimuat dari Supabase. {preferenceError}</p>}
+      {notificationsEnabled === null && !preferenceError && <p role="status" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">Memuat preferensi notifikasi…</p>}
+      {notificationsEnabled === false && <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">Notifikasi admin sedang dinonaktifkan. Aktifkan kembali melalui Pengaturan untuk melihat notifikasi.</p>}
+      {proofError && notificationsEnabled && <p role="alert" className="rounded-lg bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-700">{proofError}</p>}
       <section aria-label="Daftar informasi keputusan" className="overflow-hidden rounded-2xl border border-slate-100 bg-white">
-        {notifications.length === 0 && <p className="px-5 py-10 text-center text-sm text-slate-500">Belum ada informasi keputusan dari BPDLH.</p>}
+        {notificationsEnabled === true && notifications.length === 0 && <p className="px-5 py-10 text-center text-sm text-slate-500">Belum ada informasi keputusan dari BPDLH.</p>}
         <ol className="divide-y divide-slate-100">
-          {notifications.map((item) => {
+          {notificationsEnabled === true && notifications.map((item) => {
             const isRead = readIds.includes(item.id);
             return <li id={item.id} key={item.id} className={`scroll-mt-24 p-5 ${isRead ? "" : "bg-blue-50/30"}`}>
               <div className="flex items-start gap-3">
@@ -225,7 +287,7 @@ export function AdminNotificationsView() {
           })}
         </ol>
       </section>
-      <p className="text-center text-[10px] text-slate-400">Notifikasi demo tersimpan lokal di browser ini, belum memakai backend.</p>
+      <p className="text-center text-[10px] text-slate-400">Preferensi tersimpan di Supabase dan disinkronkan realtime ke perangkat admin lainnya.</p>
     </div>
   );
 }

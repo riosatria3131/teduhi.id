@@ -45,9 +45,11 @@ export function usePortalReports() {
 
     void refresh();
     const unsubscribe = subscribeToLocalReports(() => void refresh());
+    const poll = window.setInterval(() => void refresh(), 20000);
     window.addEventListener("laporkota:session-changed", refresh);
     return () => {
       active = false;
+      window.clearInterval(poll);
       unsubscribe();
       window.removeEventListener("laporkota:session-changed", refresh);
     };

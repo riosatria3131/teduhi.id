@@ -139,6 +139,14 @@ export const DocumentsIcon = (p: IconProps) => (
     <path d="M16 2v4h4M11 9h7M11 12h7M11 15h7" />
   </Svg>
 );
+export const MessageIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M6.5 3.5h11A3.5 3.5 0 0 1 21 7v8a3.5 3.5 0 0 1-3.5 3.5H15v3.8l-4.1-3.8H6.5A3.5 3.5 0 0 1 3 15V7a3.5 3.5 0 0 1 3.5-3.5Z" />
+    <circle cx="8" cy="11" r=".8" />
+    <circle cx="12" cy="11" r=".8" />
+    <circle cx="16" cy="11" r=".8" />
+  </Svg>
+);
 export const RoadIcon = (p: IconProps) => (
   <Svg {...p}><path d="M7 3 4 21M17 3l3 18M12 4v3m0 4v3m0 4v3" /></Svg>
 );
@@ -164,10 +172,10 @@ export const SettingsIcon = (p: IconProps) => (
   <Svg {...p}><circle cx="12" cy="12" r="3" /><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.6a8 8 0 0 1-1.7 1l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.7-1l-1.7.6-1.4-2.4 1.4-1.1a7 7 0 0 1 0-2l-1.4-1.1 1.4-2.4 1.7.6a8 8 0 0 1 1.7-1l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.7 1l1.7-.6 1.4 2.4-1.4 1.1a7 7 0 0 1 0 2Z" transform="translate(-1 -1)" /></Svg>
 );
 
-/** Logo TEDUHI dari aset resmi di public/logo.png. */
+/** Logo TEDUHI dari aset resmi di public/logo.webp. */
 export function LogoMark({ size = 44 }: { size?: number }) {
   return (
-    <Image src="/logo.png?v=3" alt="" aria-hidden="true" width={size} height={size} unoptimized className="object-contain" />
+    <Image src="/logo.webp" alt="" aria-hidden="true" width={size} height={size} unoptimized className="object-contain" />
   );
 }
 

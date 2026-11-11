@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BuildingsIcon, FileIcon, HomeIcon, LogOutIcon, LogoMark, PhoneIcon, SettingsIcon, UserIcon } from "@/components/icons";
+import { BuildingsIcon, FileIcon, HomeIcon, LogoMark, PhoneIcon, SettingsIcon, UserIcon } from "@/components/icons";
 
 const links = [
   { href: "/admin", label: "Dashboard", Icon: HomeIcon },
@@ -17,7 +17,7 @@ export function AdminSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="border-b border-slate-100 bg-white px-4 py-4 lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-b-0 lg:px-5 lg:py-7">
+    <aside className="border-b border-white/65 bg-white/75 px-4 py-4 backdrop-blur-xl lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:w-64 lg:flex-col lg:border-r-2 lg:border-white/65 lg:border-b-0 lg:px-5 lg:py-7">
       <Link href="/admin" className="flex items-center gap-3 px-1 lg:px-0">
         <LogoMark size={52} />
         <span className="leading-tight">
@@ -40,7 +40,6 @@ export function AdminSidebar() {
           return <Link key={href} href={href} aria-current={active ? "page" : undefined} className={`flex shrink-0 items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors lg:px-3.5 ${active ? "bg-blue-50 text-blue-700" : "text-slate-500 hover:bg-slate-50 hover:text-[#102a61]"}`}><Icon width={18} height={18} />{label}</Link>;
         })}
       </nav>
-      <button type="button" onClick={() => window.dispatchEvent(new Event("teduhi:admin-logout"))} className="mt-3 hidden items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-left text-sm font-semibold text-slate-500 transition hover:bg-rose-50 hover:text-rose-600 lg:flex"><LogOutIcon width={18} height={18} />Keluar</button>
     </aside>
   );
 }

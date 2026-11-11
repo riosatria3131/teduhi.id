@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AdminDataTable, type AdminTableRow } from "@/components/admin/shared/AdminDataTable";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { subscribeToLocalReports } from "@/lib/portal-store";
+import { getIndonesianIsland, INDONESIAN_ISLANDS } from "@/lib/admin/island-region";
 
 type AdminReportRow = {
   id: string | number;
@@ -41,6 +42,7 @@ export function AdminReportsTable() {
         const reports = (data ?? []) as unknown as AdminReportRow[];
         setRows(reports.map((report) => ({
           id: String(report.id),
+          island: getIndonesianIsland([report.address, report.district].filter(Boolean).join(", ")),
           values: [
             report.title || "Tanpa judul",
             getReporterName(report.profiles),
@@ -81,6 +83,7 @@ export function AdminReportsTable() {
         rows={rows}
         searchPlaceholder="Cari laporan atau lokasi..."
         filters={statusFilters}
+        secondaryFilter={{ label: "Filter pulau", options: [...INDONESIAN_ISLANDS] }}
         footerMessage="Data laporan warga tersimpan di Supabase."
       />
     </>

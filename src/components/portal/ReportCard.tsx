@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { CalendarIcon, ChevronIcon, CheckIcon, ClockIcon, PinIcon, WrenchIcon } from "@/components/icons";
-import type { PortalReport } from "./portal-data";
+import { getReportStatusDescription, type PortalReport } from "./portal-data";
 
 export function ReportCard({ report }: { report: PortalReport }) {
   const statusStyle = report.status === "Selesai" ? "bg-emerald-50 text-emerald-700" : report.status === "Ditolak" ? "bg-rose-50 text-rose-700" : report.status === "Sedang Diproses" ? "bg-blue-50 text-blue-700" : report.status === "Terverifikasi" ? "bg-violet-50 text-violet-700" : "bg-amber-50 text-amber-700";
@@ -14,6 +14,7 @@ export function ReportCard({ report }: { report: PortalReport }) {
         <span className="mt-1.5 flex min-w-0 items-center gap-1 text-[10px] text-slate-500 sm:text-xs"><PinIcon width={13} height={13} className="shrink-0 text-slate-400" /><span className="truncate">{report.location}</span></span>
         <span className="mt-1 flex min-w-0 items-center gap-1 text-[9px] text-slate-500 sm:text-xs"><CalendarIcon width={13} height={13} className="shrink-0 text-slate-400" /><span className="truncate">{report.date}</span></span>
         <span className={`mt-1.5 inline-flex max-w-full items-center gap-1 rounded-full px-2 py-1 text-[9px] font-bold leading-none sm:text-[10px] ${statusStyle}`}><StatusIcon width={12} height={12} /><span className="truncate">{report.status}</span></span>
+        <span className="mt-1 block text-[9px] leading-relaxed text-slate-500 sm:text-[10px]">{getReportStatusDescription(report.status)}</span>
       </span>
       <ChevronIcon width={18} height={18} className="shrink-0 text-slate-400 transition-transform group-hover:translate-x-0.5" />
     </Link>

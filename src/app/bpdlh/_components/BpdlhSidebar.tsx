@@ -2,14 +2,17 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { createPortal } from "react-dom";
 import { useState } from "react";
-import { BuildingsIcon, FileIcon, HomeIcon, LogOutIcon, LogoMark, SettingsIcon } from "@/components/icons";
+import { BuildingsIcon, FileIcon, HomeIcon, ListIcon, LogOutIcon, LogoMark, SettingsIcon } from "@/components/icons";
 import { signOutDemoAccount } from "@/lib/demo-auth";
 
 const navigation = [
   { label: "Dashboard", icon: HomeIcon, href: "/bpdlh" },
   { label: "Kotak Masuk Pengajuan", icon: FileIcon, href: "/bpdlh/pengajuan" },
+  { label: "Riwayat Analisis", icon: ListIcon, href: "/bpdlh/audit" },
   { label: "Pos Anggaran", icon: BuildingsIcon, href: "/bpdlh/anggaran" },
+  { label: "Analisis Anggaran", icon: BuildingsIcon, href: "/bpdlh/analisis-anggaran" },
   { label: "Pengaturan", icon: SettingsIcon, href: "/bpdlh/pengaturan" },
 ];
 
@@ -33,7 +36,7 @@ export function BpdlhSidebar() {
   }
 
   return (
-    <aside className="border-b border-slate-200 bg-white px-4 py-3 lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-b-0 lg:px-3 lg:py-4">
+    <aside className="border-b border-white/65 bg-white/75 px-4 py-3 backdrop-blur-xl lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-b-0 lg:px-3 lg:py-4">
       <Link href="/bpdlh" className="flex items-center gap-3 border-b border-slate-100 px-1 pb-4">
         <LogoMark size={52} />
         <span className="leading-tight">
@@ -65,7 +68,7 @@ export function BpdlhSidebar() {
           <LogOutIcon width={15} height={15} /> Keluar
         </button>
       </div>
-      {confirmLogout && <div role="presentation" onClick={() => !logoutPending && setConfirmLogout(false)} className="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 p-4 backdrop-blur-sm">
+      {confirmLogout && createPortal(<div role="presentation" onClick={() => !logoutPending && setConfirmLogout(false)} className="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 p-4 backdrop-blur-sm">
         <section role="dialog" aria-modal="true" aria-labelledby="bpdlh-logout-title" onClick={(event) => event.stopPropagation()} className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl">
           <span className="mx-auto grid size-12 place-items-center rounded-full bg-rose-50 text-rose-700"><LogOutIcon width={22} height={22} /></span>
           <h2 id="bpdlh-logout-title" className="mt-4 text-lg font-extrabold text-[#102a61]">Konfirmasi Keluar</h2>
@@ -76,7 +79,7 @@ export function BpdlhSidebar() {
             <button type="button" disabled={logoutPending} onClick={() => void handleLogout()} className="rounded-xl bg-rose-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-rose-800 disabled:opacity-60">{logoutPending ? "Memproses…" : "Ya, Keluar"}</button>
           </div>
         </section>
-      </div>}
+      </div>, document.body)}
     </aside>
   );
 }

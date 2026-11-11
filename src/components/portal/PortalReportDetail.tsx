@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowLeftIcon, CalendarIcon, CheckIcon, PinIcon } from "@/components/icons";
 import { getLocalReport } from "@/lib/portal-store";
-import { type PortalReport } from "./portal-data";
+import { getReportStatusDescription, type PortalReport } from "./portal-data";
+import { PortalReportPayoutNotes } from "./PortalReportPayoutNotes";
 
 export function PortalReportDetail({ id }: { id: string }) {
   const [report, setReport] = useState<PortalReport | null>(null);
@@ -63,11 +64,12 @@ export function PortalReportDetail({ id }: { id: string }) {
             </div>
             <h2 className="mt-5 text-sm font-extrabold text-ink">Deskripsi</h2>
             <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-muted">{report.description ?? "Catatan detail tidak tersedia pada data contoh."}</p>
-            <div className="mt-5 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm leading-relaxed text-blue-900"><CheckIcon width={17} height={17} className="mr-1 inline" />Status laporan saat ini: {report.status}.</div>
+            <div className="mt-5 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm leading-relaxed text-blue-900"><CheckIcon width={17} height={17} className="mr-1 inline" />Status laporan saat ini: {report.status}. {getReportStatusDescription(report.status)}</div>
             {report.latitude && report.longitude && <p className="mt-4 text-xs text-muted">Koordinat yang Anda masukkan: {report.latitude}, {report.longitude}</p>}
           </div>
         </div>
       </article>
+      <PortalReportPayoutNotes reportId={report.id} />
     </div>
   );
 }

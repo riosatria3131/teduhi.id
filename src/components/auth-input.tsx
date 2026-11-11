@@ -8,7 +8,7 @@ type Props = {
   label: string;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
   placeholder: string;
-  type?: "text" | "email" | "password";
+  type?: "text" | "email" | "password" | "tel";
   autoComplete?: string;
   error?: string;
   extra?: ReactNode;
