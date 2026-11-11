@@ -77,7 +77,7 @@ export function LoginForm() {
       <AuthInput
         id="password" label="Kata Sandi" icon={LockIcon} type="password" autoComplete="current-password"
         placeholder="Minimal 8 karakter" error={errors.password}
-        extra={<Link href="#" className="text-sm font-bold text-brand-dark hover:underline">Lupa kata sandi?</Link>}
+        extra={<Link href="/lupa-kata-sandi" className="text-sm font-bold text-brand-dark hover:underline">Lupa kata sandi?</Link>}
       />
 
       {message && <p role="status" className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">{message}</p>}

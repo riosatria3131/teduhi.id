@@ -13,7 +13,7 @@ import { AuthPanel, Brand } from "@/components/auth-panel";
  */
 export default function AuthLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const isLoginPage = pathname === "/masuk";
+  const isLoginPage = ["/masuk", "/lupa-kata-sandi", "/atur-ulang-kata-sandi"].includes(pathname);
   const isAuthPage = isLoginPage || pathname === "/daftar";
 
   return (
