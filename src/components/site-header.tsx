@@ -38,13 +38,13 @@ export function SiteHeader() {
     const startY = window.scrollY;
     const endY = Math.max(0, target.getBoundingClientRect().top + startY - headerHeight);
     let startTime: number | null = null;
-    const duration = 850;
+    const duration = sectionId === "profil" ? 420 : 850;
 
     function animateScroll(now: number) {
       startTime ??= now;
       const progress = Math.min((now - startTime) / duration, 1);
       const easedProgress = 1 - (1 - progress) ** 3;
-      window.scrollTo(0, startY + (endY - startY) * easedProgress);
+      window.scrollTo({ top: startY + (endY - startY) * easedProgress, behavior: "instant" });
       if (progress < 1) {
         scrollAnimationRef.current = window.requestAnimationFrame(animateScroll);
       } else {
