@@ -1,6 +1,9 @@
 type GeocodingAddress = Record<string, unknown>;
 type GeocodingResult = { address?: GeocodingAddress };
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 function firstAddressPart(address: GeocodingAddress, keys: string[]): string {
   for (const key of keys) {
     const value = address[key];
