@@ -12,7 +12,7 @@ export async function getAdminNotificationsEnabled(): Promise<boolean> {
     .from(TABLE)
     .select("enabled")
     .eq("singleton", true)
-    .single();
+    .maybeSingle();
   if (error || !data) throw new Error(error?.message || MIGRATION_ERROR);
   return Boolean(data.enabled);
 }
