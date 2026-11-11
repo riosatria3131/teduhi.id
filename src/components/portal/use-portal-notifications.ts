@@ -167,8 +167,10 @@ export function usePortalNotifications() {
     window.addEventListener("storage", syncState);
     window.addEventListener("focus", refresh);
     document.addEventListener("visibilitychange", refresh);
+    const poll = window.setInterval(refresh, 5000);
     return () => {
       active = false;
+      window.clearInterval(poll);
       window.removeEventListener(READ_CHANGED, syncState);
       window.removeEventListener("storage", syncState);
       window.removeEventListener("focus", refresh);
