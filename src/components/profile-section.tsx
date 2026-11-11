@@ -34,7 +34,7 @@ export function ProfileSection() {
             </p>
             <div className="relative w-full max-w-[180px] sm:max-w-[290px] lg:max-w-[320px]">
               <Image
-                src="/mobile.png"
+                src="/mobile.webp"
                 alt="Pratinjau tampilan TEDUHI pada ponsel untuk melihat riwayat laporan bencana"
                 width={1024}
                 height={1536}
