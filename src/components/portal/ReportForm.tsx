@@ -331,8 +331,8 @@ export function ReportForm() {
   const encodedMapSearch = encodeURIComponent(mapSearch);
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-5 rounded-2xl border border-line bg-white p-5 shadow-[0_8px_28px_-24px_rgba(16,39,92,0.45)] sm:p-7">
-      <div className="grid gap-5 md:grid-cols-2">
+    <form onSubmit={onSubmit} className="grid min-w-0 grid-cols-1 gap-5 rounded-2xl border border-line bg-white p-5 shadow-[0_8px_28px_-24px_rgba(16,39,92,0.45)] sm:p-7">
+      <div className="grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2">
         <div ref={categoryPickerRef} className="relative z-20 grid content-start gap-2 text-sm font-bold text-ink md:col-span-2">
           <span id="category-label">Kategori bencana <span className="text-danger">*</span></span>
           <input type="hidden" name="category" value={category} />
@@ -402,10 +402,10 @@ export function ReportForm() {
         </label>
       </div>
 
-      <div className="rounded-2xl bg-paper/70 p-4 sm:p-5">
+      <div className="min-w-0 rounded-2xl bg-paper/70 p-4 sm:p-5">
         <div className="flex items-center gap-2"><PinIcon width={19} height={19} className="text-brand" /><h2 className="font-extrabold text-ink">Lokasi kerusakan</h2></div>
         <p className="mt-1 text-xs text-muted">Pilih provinsi, kabupaten/kota, dan kecamatan. Isi alamat detail atau patokan secara terpisah.</p>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <div className="mt-4 grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
           <RegionDropdown
             id="province"
             label="Provinsi"
