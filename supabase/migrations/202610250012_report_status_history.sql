@@ -10,6 +10,48 @@ create table if not exists public.report_status_history (
 alter table public.report_status_history
   add column if not exists changed_at timestamptz not null default now();
 
+-- Repair older tables that were created without a status column.
+alter table public.report_status_history
+  add column if not exists status text;
+
+update public.report_status_history history
+set status = case
+  when reports.status = 'review' then 'Menunggu Verifikasi'
+  else reports.status
+end
+from public.reports
+where reports.id = history.report_id
+  and history.status is null;
+
+update public.report_status_history
+set status = 'Menunggu Verifikasi'
+where status is null;
+
+alter table public.report_status_history
+  alter column status set default 'Menunggu Verifikasi',
+  alter column status set not null;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'report_status_history_status_check'
+      and conrelid = 'public.report_status_history'::regclass
+  ) then
+    alter table public.report_status_history
+      add constraint report_status_history_status_check
+      check (status in (
+        'Menunggu Verifikasi',
+        'Terverifikasi',
+        'Sedang Diproses',
+        'Selesai',
+        'Ditolak'
+      ));
+  end if;
+end;
+$$;
+
 create index if not exists report_status_history_report_changed_idx
   on public.report_status_history (report_id, changed_at asc);
 
