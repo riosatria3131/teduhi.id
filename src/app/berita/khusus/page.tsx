@@ -16,10 +16,6 @@ export default function SpecialNewsPage() {
           <p className="mt-3 max-w-3xl text-sm leading-6 text-muted sm:text-base sm:leading-7">Informasi khusus dari TEDUHI akan ditampilkan di halaman ini.</p>
           <PublicBudgetSummary />
           <PublicBudgetIslandChart />
-          <div className="mt-8 rounded-2xl border border-dashed border-emerald-200 bg-white/80 px-6 py-10 text-center shadow-sm">
-            <p className="text-base font-bold text-[#102a61]">Belum ada berita khusus.</p>
-            <p className="mt-2 text-sm text-muted">Berita umum yang tersedia dapat dibaca melalui menu Berita Umum.</p>
-          </div>
         </section>
       </main>
       <SiteFooter />
