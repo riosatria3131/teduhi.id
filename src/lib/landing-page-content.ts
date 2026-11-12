@@ -77,7 +77,7 @@ export const DEFAULT_LANDING_PAGE_CONTENT: LandingPageContent = {
   whatsappUrl: "https://wa.me/6289670265654",
   instagramUrl: "https://www.instagram.com/teduhi.id/",
   youtubeUrl: "https://youtube.com/@muhammadachdiamanggalamanggala?si=XZttslIu4I3yq_Jy",
-  ctaHeading: "Masi hadapi bencana sendiri? dapatkan pertolongan sekarang juga.",
+  ctaHeading: "Masih hadapi bencana sendiri? Dapatkan pertolongan sekarang juga.",
   ctaDescription: "Satu laporan anda bisa selamatkan masyarakat yang lain.",
   news: [],
 };
