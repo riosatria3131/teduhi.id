@@ -33,7 +33,7 @@ export function AdminSidebar() {
           </span>
         </span>
       </Link>
-      <p className="mb-3 mt-5 hidden px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400 lg:block">Menu admin</p>
+      <p className="mb-3 mt-5 hidden px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400 lg:block">Management Informasi</p>
       <nav aria-label="Navigasi admin" className="mt-3 flex gap-1 overflow-x-auto lg:mt-0 lg:grid lg:overflow-visible">
         {links.map(({ href, label, Icon }) => {
           const active = href === "/admin" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
