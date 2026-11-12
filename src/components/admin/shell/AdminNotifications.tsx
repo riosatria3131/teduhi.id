@@ -213,7 +213,7 @@ export function AdminNotificationBell() {
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3"><h2 className="text-xs font-extrabold text-[#102a61]">Notifikasi Admin</h2><span className="text-[10px] text-slate-500">{citizenReports.length} laporan baru</span></div>
           <ul className="max-h-80 overflow-y-auto divide-y divide-slate-100">
             {reportError && <li role="alert" className="px-4 py-3 text-[10px] text-rose-700">Laporan baru gagal dimuat: {reportError}</li>}
-            {citizenReports.length === 0 && !reportError && <li className="px-4 py-4 text-center text-[10px] text-slate-500">Belum ada laporan baru dari warga.</li>}
+            {citizenReports.length === 0 && unread.length > 0 && !reportError && <li className="px-4 py-4 text-center text-[10px] text-slate-500">Belum ada laporan baru dari warga.</li>}
             {citizenReports.map((report) => <li key={`report:${report.id}`}>
               <button type="button" disabled={openingReportId === report.id} onClick={() => void openCitizenReport(report)} className="block w-full px-4 py-3 text-left transition hover:bg-blue-50/60 disabled:opacity-60">
                 <span className="flex items-start justify-between gap-3"><span className="text-[11px] font-bold text-[#102a61]">{report.title || "Laporan baru dari warga"}</span><span className="mt-1 size-2 shrink-0 rounded-full bg-rose-500" /></span>
@@ -221,8 +221,8 @@ export function AdminNotificationBell() {
                 <span className="mt-1 block text-[9px] font-semibold text-blue-700">{openingReportId === report.id ? "Membuka laporan…" : "Klik untuk memasukkan ke Kelola Laporan"}</span>
               </button>
             </li>)}
-            {notifications.length === 0 && citizenReports.length === 0 && !reportError && <li className="px-4 py-5 text-center text-[11px] text-slate-500">Belum ada notifikasi laporan warga maupun informasi dari BPDLH.</li>}
-            {notifications.slice(0, 8).map((item) => <li key={item.id}>
+            {unread.length === 0 && citizenReports.length === 0 && !reportError && <li className="px-4 py-5 text-center text-[11px] text-slate-500">Tidak ada notifikasi baru.</li>}
+            {unread.slice(0, 8).map((item) => <li key={item.id}>
               <Link href={`/admin/notifikasi#${encodeURIComponent(item.id)}`} onClick={() => openNotification(item.id)} className="block px-4 py-3 hover:bg-blue-50/60">
                 <span className="flex items-start justify-between gap-3"><span className="text-[11px] font-bold text-[#102a61]">{item.decision}: {item.requestTitle}</span>{!readIds.includes(item.id) && <span className="mt-1 size-2 shrink-0 rounded-full bg-rose-500" />}</span>
                 {item.note && <span className="mt-1 block text-[10px] text-slate-600">{item.note}</span>}
