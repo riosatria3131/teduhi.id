@@ -47,19 +47,19 @@ export function TopDisasterCategories() {
     .sort((a, b) => b.count - a.count);
 
   return (
-    <section className="rounded-xl border border-slate-100 bg-white p-4 shadow-[0_5px_20px_-18px_rgba(16,39,92,0.45)] sm:p-5">
+    <section className="rounded-xl border border-slate-100 bg-white p-3 shadow-[0_5px_20px_-18px_rgba(16,39,92,0.45)] sm:p-4">
       <div className="mb-3">
-        <h2 className="text-sm font-extrabold text-[#102a61]">Top Kategori Laporan</h2>
-        <p className="mt-0.5 text-[10px] text-slate-500">Peringkat berdasarkan laporan bencana warga</p>
+        <h2 className="text-xs font-extrabold text-[#102a61]">Top Kategori Laporan</h2>
+        <p className="mt-0.5 text-[9px] text-slate-500">Peringkat berdasarkan laporan bencana warga</p>
       </div>
       <ol className="grid gap-2">
         {rankedDisasters.map((disaster, index) => (
           <li key={disaster.name} className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-3">
-            <p className="min-w-0 truncate text-xs font-semibold text-slate-700">
-              <span className={`mr-2 inline-flex rounded-md px-2 py-1 text-[10px] font-extrabold ${disaster.badge}`}>Top {index + 1}</span>
+            <p className="min-w-0 truncate text-[11px] font-semibold text-slate-700">
+              <span className={`mr-2 inline-flex rounded-md px-2 py-1 text-[9px] font-extrabold ${disaster.badge}`}>Top {index + 1}</span>
               {disaster.name}
             </p>
-            <p className="shrink-0 text-xs font-extrabold text-[#102a61]">{disaster.count} kejadian</p>
+            <p className="shrink-0 text-[11px] font-extrabold text-[#102a61]">{disaster.count} kejadian</p>
           </li>
         ))}
       </ol>

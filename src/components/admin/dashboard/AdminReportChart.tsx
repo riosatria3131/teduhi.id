@@ -52,11 +52,11 @@ export function AdminReportChart() {
   const ticks = [0, 1, 2, 3, 4].map((tick) => tickStep * tick);
 
   return (
-    <section className="rounded-xl border border-slate-100 bg-white p-4 shadow-[0_5px_20px_-18px_rgba(16,39,92,0.45)] sm:p-5">
+    <section className="rounded-xl border border-slate-100 bg-white p-3 shadow-[0_5px_20px_-18px_rgba(16,39,92,0.45)] sm:p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="text-sm font-extrabold text-[#102a61]">Grafik Laporan {periodInfo.title}</h2>
-          <p className="mt-0.5 text-[10px] text-slate-500">Laporan berstatus selesai, dikelompokkan berdasarkan tanggal laporan</p>
+          <h2 className="text-xs font-extrabold text-[#102a61]">Grafik Laporan {periodInfo.title}</h2>
+          <p className="mt-0.5 text-[9px] text-slate-500">Laporan berstatus selesai, dikelompokkan berdasarkan tanggal laporan</p>
         </div>
         <label className="sr-only" htmlFor="dashboard-range">Periode grafik laporan</label>
         <select id="dashboard-range" value={period} onChange={(event) => setPeriod(event.target.value as Period)} className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100">
@@ -70,7 +70,7 @@ export function AdminReportChart() {
             const y = yFor(tick);
             return <g key={tick}>
               <line x1={chart.left} x2={chart.right} y1={y} y2={y} stroke="#e8eef7" strokeDasharray="4 5" />
-              <text x={chart.left - 12} y={y + 4} textAnchor="end" fill="#94a3b8" fontSize="11">{formatReportCount(tick)}</text>
+              <text x={chart.left - 12} y={y + 4} textAnchor="end" fill="#94a3b8" fontSize="10">{formatReportCount(tick)}</text>
             </g>;
           })}
           <line x1={chart.left} x2={chart.left} y1={chart.top} y2={chart.bottom} stroke="#cbd5e1" />
@@ -82,7 +82,7 @@ export function AdminReportChart() {
               <circle cx={x} cy={yFor(point.value)} r="4" fill="white" stroke="#10b981" strokeWidth="2.5">
                 <title>{`${point.detail}: ${formatReportCount(point.value)} laporan tertangani`}</title>
               </circle>
-              <text x={x} y={chart.bottom + 22} textAnchor="middle" fill="#64748b" fontSize="11">{point.label}</text>
+              <text x={x} y={chart.bottom + 22} textAnchor="middle" fill="#64748b" fontSize="9">{point.label}</text>
             </g>;
           })}
         </svg>

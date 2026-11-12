@@ -13,7 +13,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </Suspense>
         <div className="lg:pl-64">
           <AdminTopbar />
-          <main className="mx-auto w-full max-w-[1500px] px-5 py-6 sm:px-7 lg:px-8 lg:py-8">
+          <main className="mx-auto w-full max-w-[1500px] p-3 sm:p-4 lg:p-5">
             {children}
           </main>
         </div>

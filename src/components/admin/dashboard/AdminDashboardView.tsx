@@ -51,26 +51,26 @@ export function AdminDashboardView() {
   }, []);
 
   return (
-    <div className="mx-auto grid max-w-[1500px] gap-4 sm:gap-5">
-      <section className="relative isolate overflow-hidden rounded-2xl bg-linear-to-r from-[#075be5] via-[#0878e5] to-[#12b8c8] px-5 py-5 text-white shadow-[0_16px_40px_-24px_rgba(0,84,190,0.55)] sm:px-7 sm:py-6">
-        <div aria-hidden="true" className="absolute -right-8 -top-20 -z-10 size-64 rounded-full border border-white/15" />
-        <div aria-hidden="true" className="absolute right-20 -bottom-36 -z-10 size-72 rounded-full border border-white/15" />
+    <div className="mx-auto grid max-w-[1500px] gap-3 sm:gap-4">
+      <section className="relative isolate overflow-hidden rounded-2xl bg-linear-to-r from-[#075be5] via-[#0878e5] to-[#12b8c8] px-4 py-4 text-white shadow-[0_16px_40px_-24px_rgba(0,84,190,0.55)] sm:px-5 sm:py-5">
+        <div aria-hidden="true" className="absolute -right-8 -top-20 -z-10 size-56 rounded-full border border-white/15" />
+        <div aria-hidden="true" className="absolute right-20 -bottom-36 -z-10 size-64 rounded-full border border-white/15" />
         <div className="max-w-2xl">
-          <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-blue-100">Panel Administrasi TEDUHI</p>
-          <h1 className="mt-1.5 text-xl font-extrabold sm:text-2xl">Selamat datang, Admin!</h1>
-          <p className="mt-1 max-w-lg text-xs leading-relaxed text-white/85 sm:text-sm">Berikut ringkasan data dan aktivitas terbaru layanan TEDUHI hari ini.</p>
-          <div className="mt-3"><LiveDate className="bg-white/15 text-white/90" /></div>
+          <p className="text-[8px] font-extrabold uppercase tracking-[0.16em] text-blue-100">Panel Administrasi TEDUHI</p>
+          <h1 className="mt-1 text-lg font-extrabold sm:text-xl">Selamat datang, Admin!</h1>
+          <p className="mt-1 max-w-lg text-[10px] leading-relaxed text-white/85 sm:text-xs">Berikut ringkasan data dan aktivitas terbaru layanan TEDUHI hari ini.</p>
+          <div className="mt-2"><LiveDate className="bg-white/15 px-2 py-1 text-[8px] text-white/90" /></div>
         </div>
-        <div aria-hidden="true" className="absolute right-5 bottom-0 hidden h-full w-[34%] items-end justify-end gap-2 overflow-hidden opacity-25 sm:flex">
-          <div className="h-1/3 w-10 rounded-t-lg border border-white/70 bg-white/10" />
-          <div className="h-2/3 w-14 rounded-t-lg border border-white/70 bg-white/10" />
-          <div className="h-1/2 w-11 rounded-t-lg border border-white/70 bg-white/10" />
-          <div className="h-4/5 w-16 rounded-t-lg border border-white/70 bg-white/10" />
-          <div className="h-2/5 w-10 rounded-t-lg border border-white/70 bg-white/10" />
+        <div aria-hidden="true" className="absolute right-4 bottom-0 hidden h-full w-[34%] items-end justify-end gap-2 overflow-hidden opacity-25 sm:flex">
+          <div className="h-1/3 w-9 rounded-t-lg border border-white/70 bg-white/10" />
+          <div className="h-2/3 w-9 rounded-t-lg border border-white/70 bg-white/10" />
+          <div className="h-1/2 w-9 rounded-t-lg border border-white/70 bg-white/10" />
+          <div className="h-4/5 w-9 rounded-t-lg border border-white/70 bg-white/10" />
+          <div className="h-2/5 w-9 rounded-t-lg border border-white/70 bg-white/10" />
         </div>
       </section>
 
-      <section aria-label="Statistik laporan" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      <section aria-label="Statistik laporan" className="grid grid-cols-2 gap-2.5 xl:grid-cols-4">
         {(metrics.length ? metrics : [
           { label: "Total Laporan", value: 0, note: "Seluruh laporan warga", tone: "blue" as const },
           { label: "Laporan Tertunda", value: 0, note: "Menunggu verifikasi", tone: "red" as const },
@@ -79,15 +79,15 @@ export function AdminDashboardView() {
         ]).map((metric, index) => {
           const Icon = metricIcons[index];
           return (
-            <article key={metric.label} className="rounded-xl border border-slate-100 bg-white p-3.5 shadow-[0_5px_20px_-18px_rgba(16,39,92,0.45)] sm:p-4">
+            <article key={metric.label} className="rounded-xl border border-slate-100 bg-white p-3 shadow-[0_5px_20px_-18px_rgba(16,39,92,0.45)] sm:p-3.5">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="truncate text-[10px] font-bold text-slate-500 sm:text-xs">{metric.label}</p>
-                  <p className="mt-1 text-2xl font-extrabold leading-none tracking-tight text-[#102a61] sm:text-3xl">{loadingMetrics ? "…" : formatReportCount(metric.value)}</p>
+                  <p className="truncate text-[9px] font-bold text-slate-500 sm:text-[10px]">{metric.label}</p>
+                  <p className="mt-1 text-lg font-extrabold leading-none tracking-tight text-[#102a61] sm:text-xl">{loadingMetrics ? "…" : formatReportCount(metric.value)}</p>
                 </div>
-                <span className={`grid size-8 shrink-0 place-items-center rounded-lg sm:size-9 ${metricStyles[metric.tone]}`}><Icon width={17} height={17} /></span>
+                <span className={`grid size-7 shrink-0 place-items-center rounded-lg ${metricStyles[metric.tone]}`}><Icon width={15} height={15} /></span>
               </div>
-              <p className="mt-2 truncate text-[9px] font-semibold text-slate-500 sm:text-[10px]">{metric.note}</p>
+              <p className="mt-1.5 min-h-5 text-[8px] font-semibold text-slate-500">{metric.note}</p>
             </article>
           );
         })}
@@ -95,17 +95,17 @@ export function AdminDashboardView() {
 
       {metricsError && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">Statistik dashboard gagal dimuat dari Supabase. Periksa koneksi dan izin admin. {metricsError}</p>}
 
-      <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.85fr)]">
+      <div className="grid items-stretch gap-3 sm:gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.85fr)]">
         <AdminReportChart />
         <TopDisasterCategories />
       </div>
 
-      <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:gap-5">
+      <div className="grid items-stretch gap-3 sm:gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <FinanceBudgetSummary />
         <IslandReportPieChart />
       </div>
 
-      <p className="text-center text-[10px] text-slate-400">Statistik laporan dimuat langsung dari database Supabase.</p>
+      <p className="text-center text-[8px] text-slate-400">Statistik laporan dimuat langsung dari database Supabase.</p>
     </div>
   );
 }
