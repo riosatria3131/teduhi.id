@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { LogOutIcon } from "@/components/icons";
 import { signOutDemoAccount } from "@/lib/demo-auth";
 
-const sections = ["Informasi Akun", "Notifikasi", "Keamanan"] as const;
+const sections = ["Informasi Akun", "Notifikasi"] as const;
 
 export default function BpdlhSettingsPage() {
   const router = useRouter();
@@ -44,12 +44,9 @@ export default function BpdlhSettingsPage() {
             <label className="grid max-w-xl gap-2 text-xs font-bold text-[#102a61]">Nama tampilan<input defaultValue="Admin Keuangan" className="h-10 rounded-lg border border-slate-200 px-3 text-xs font-normal outline-none focus:border-blue-400" /></label>
             <label className="grid max-w-xl gap-2 text-xs font-bold text-[#102a61]">Unit kerja<input defaultValue="BPDLH · Keuangan" className="h-10 rounded-lg border border-slate-200 px-3 text-xs font-normal outline-none focus:border-blue-400" /></label>
             <p className="max-w-xl rounded-lg bg-slate-50 p-3 text-[10px] leading-relaxed text-slate-500">Pengaturan akun pada panel ini masih berupa tampilan demo dan belum tersimpan ke server.</p>
-          </> : section === "Notifikasi" ? <>
+          </> : <>
             <label className="flex max-w-xl items-center justify-between gap-4 rounded-lg border border-slate-200 p-3 text-xs font-semibold text-[#102a61]">Notifikasi pengajuan baru<input type="checkbox" defaultChecked className="size-4 accent-blue-700" /></label>
             <label className="flex max-w-xl items-center justify-between gap-4 rounded-lg border border-slate-200 p-3 text-xs font-semibold text-[#102a61]">Notifikasi perubahan status<input type="checkbox" defaultChecked className="size-4 accent-blue-700" /></label>
-          </> : <>
-            <label className="grid max-w-xl gap-2 text-xs font-bold text-[#102a61]">Durasi sesi<select defaultValue="8 jam" className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-normal"><option>1 jam</option><option>4 jam</option><option>8 jam</option></select></label>
-            <p className="max-w-xl rounded-lg bg-amber-50 p-3 text-[10px] leading-relaxed text-amber-800">Pengaturan keamanan perlu dukungan backend sebelum digunakan untuk mengubah sesi akun.</p>
           </>}
           <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4">
             <button type="submit" className="min-h-10 rounded-lg bg-blue-700 px-4 py-2 text-xs font-bold text-white transition hover:bg-blue-800">Simpan Perubahan</button>
