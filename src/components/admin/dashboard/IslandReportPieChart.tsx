@@ -81,17 +81,17 @@ export function IslandReportPieChart() {
   });
 
   return (
-    <section className="flex h-full flex-col rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_5px_20px_-18px_rgba(16,39,92,0.45)] sm:p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <section className="flex h-full min-w-0 flex-col rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_5px_20px_-18px_rgba(16,39,92,0.45)] sm:p-5">
+      <div className="grid min-w-0 gap-3">
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-extrabold text-[#102a61]">Penggunaan Dana per Pulau</h2>
           <p className="mt-0.5 text-[10px] text-slate-500">Pilih periode dan wilayah penggunaan dana</p>
         </div>
-        <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-2 xl:grid-cols-4">
-          <label className="grid gap-1 text-[9px] font-semibold text-slate-500">Periode<select aria-label="Jenis periode penggunaan dana" value={periodType} onChange={(event) => setPeriodType(event.target.value as "monthly" | "yearly")} className="h-9 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-600"><option value="monthly">Bulanan</option><option value="yearly">Tahunan</option></select></label>
-          {periodType === "monthly" && <label className="grid gap-1 text-[9px] font-semibold text-slate-500">Bulan<select aria-label="Pilih bulan" value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)} className="h-9 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-600">{MONTHS.map((month) => <option key={month.value} value={month.value}>{month.label}</option>)}</select></label>}
-          <label className="grid gap-1 text-[9px] font-semibold text-slate-500">Tahun<select aria-label="Pilih tahun" value={selectedYear} onChange={(event) => setSelectedYear(event.target.value)} className="h-9 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-600">{years.map((year) => <option key={year} value={year}>{year}</option>)}</select></label>
-          <label className="grid gap-1 text-[9px] font-semibold text-slate-500">Wilayah<select aria-label="Filter wilayah penggunaan dana" value={selectedIsland} onChange={(event) => setSelectedIsland(event.target.value)} className="h-9 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-600"><option value="">Seluruh Indonesia</option>{INDONESIAN_ISLANDS.map((island) => <option key={island} value={island}>{island}</option>)}<option value="Tidak terpetakan">Tidak terpetakan</option></select></label>
+        <div className="grid w-full min-w-0 grid-cols-2 gap-2 xl:grid-cols-4">
+          <label className="grid min-w-0 gap-1 text-[9px] font-semibold text-slate-500">Periode<select aria-label="Jenis periode penggunaan dana" value={periodType} onChange={(event) => setPeriodType(event.target.value as "monthly" | "yearly")} className="h-9 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-600"><option value="monthly">Bulanan</option><option value="yearly">Tahunan</option></select></label>
+          {periodType === "monthly" && <label className="grid min-w-0 gap-1 text-[9px] font-semibold text-slate-500">Bulan<select aria-label="Pilih bulan" value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)} className="h-9 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-600">{MONTHS.map((month) => <option key={month.value} value={month.value}>{month.label}</option>)}</select></label>}
+          <label className="grid min-w-0 gap-1 text-[9px] font-semibold text-slate-500">Tahun<select aria-label="Pilih tahun penggunaan dana" value={selectedYear} onChange={(event) => setSelectedYear(event.target.value)} className="h-9 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-600">{years.map((year) => <option key={year} value={year}>{year}</option>)}</select></label>
+          <label className="grid min-w-0 gap-1 text-[9px] font-semibold text-slate-500">Wilayah<select aria-label="Filter wilayah penggunaan dana" value={selectedIsland} onChange={(event) => setSelectedIsland(event.target.value)} className="h-9 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-600"><option value="">Seluruh Indonesia</option>{INDONESIAN_ISLANDS.map((island) => <option key={island} value={island}>{island}</option>)}<option value="Tidak terpetakan">Tidak terpetakan</option></select></label>
         </div>
       </div>
 
