@@ -6,6 +6,10 @@ create table if not exists public.report_status_history (
   changed_at timestamptz not null default now()
 );
 
+-- Add the timestamp column when this table already existed in an older form.
+alter table public.report_status_history
+  add column if not exists changed_at timestamptz not null default now();
+
 create index if not exists report_status_history_report_changed_idx
   on public.report_status_history (report_id, changed_at asc);
 
