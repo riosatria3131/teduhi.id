@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function MasukPage() {
   return (
     <>
-      <AuthHeading title="Masukan akun anda" />
+      <AuthHeading title="Masukkan akun anda" />
       <LoginForm />
     </>
   );
