@@ -199,7 +199,6 @@ export function AdminOfficerContacts() {
         {!loading && visibleContacts.length === 0 && <p className="rounded-xl bg-slate-50 p-8 text-center text-sm text-slate-500">{search || statusFilter !== "Semua Status" ? "Tidak ada kontak yang sesuai pencarian/filter." : "Belum ada instansi. Tambahkan instansi untuk mulai mengelola direktori."}</p>}
         {loading && <p className="rounded-xl bg-slate-50 p-8 text-center text-sm text-slate-500">Memuat kontak petugas…</p>}
       </div>
-      <p className="border-t border-slate-100 px-5 py-2.5 text-[11px] text-slate-400">Kontak petugas dikelola melalui database Supabase.</p>
     </section>
   );
 }
