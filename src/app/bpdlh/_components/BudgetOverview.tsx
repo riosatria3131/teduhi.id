@@ -102,7 +102,7 @@ export function BudgetOverview() {
         </div>
         {!loading && payouts.length === 0 && <p className="mt-3 text-center text-[10px] text-slate-500">Belum ada transaksi pencairan. Grafik akan terisi setelah pencairan dicatat.</p>}
         <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 text-[9px] text-slate-400">
-          <span>{error ? "Koneksi database bermasalah." : updatedAt ? `Data live dari Supabase · diperbarui ${new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit" }).format(updatedAt)}` : "Menghubungkan ke Supabase…"}</span>
+          <span>{error ? "Koneksi database bermasalah." : updatedAt ? `Diperbarui ${new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit" }).format(updatedAt)}` : "Menghubungkan ke Supabase…"}</span>
           <span>Sinkron otomatis saat data berubah</span>
         </div>
       </section>
