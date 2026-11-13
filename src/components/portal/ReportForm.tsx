@@ -66,7 +66,7 @@ function RegionDropdown({
   }, [open]);
 
   return (
-    <div ref={containerRef} className="relative grid gap-2 text-sm font-bold text-ink">
+    <div ref={containerRef} className="relative grid min-w-0 gap-2 text-sm font-bold text-ink">
       <label htmlFor={id}>{label}</label>
       <button
         id={id}
@@ -81,9 +81,9 @@ function RegionDropdown({
           setQuery("");
           setOpen((current) => !current);
         }}
-        className={`${fieldClass} flex min-h-12 items-center justify-between gap-3 text-left disabled:cursor-not-allowed disabled:bg-slate-50`}
+        className={`${fieldClass} flex min-h-12 min-w-0 items-center justify-between gap-3 text-left disabled:cursor-not-allowed disabled:bg-slate-50`}
       >
-        <span className={`truncate ${selected ? "text-ink" : "text-muted/70"}`}>
+        <span className={`min-w-0 flex-1 truncate ${selected ? "text-ink" : "text-muted/70"}`}>
           {loading ? `Memuat ${label.toLowerCase()}…` : selected?.name ?? placeholder}
         </span>
         <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className={`size-4 shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`}><path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
