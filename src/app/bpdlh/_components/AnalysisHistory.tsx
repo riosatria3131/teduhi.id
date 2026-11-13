@@ -28,8 +28,6 @@ export function AnalysisHistory() {
   const [submissions, setSubmissions] = useState<BpdlhReportSubmission[]>([]);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua Status");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -84,35 +82,17 @@ export function AnalysisHistory() {
   const filtered = useMemo(() => reviewed
     .filter((item) => {
       const searchable = `${item.title} ${item.category} ${item.address} ${item.district} ${item.reporter} ${item.adminNote} ${item.bpdlhNote} ${item.submittedAt} ${item.reviewedAt ?? ""}`.toLowerCase();
-      const date = item.reviewedAt || item.submittedAt;
-      const day = date ? new Date(date).toISOString().slice(0, 10) : "";
       const normalizedStatus = item.submissionStatus === "Menunggu Review" ? "Dalam Proses" : item.submissionStatus;
       return searchable.includes(query.trim().toLowerCase())
-        && (statusFilter === "Semua Status" || normalizedStatus === statusFilter || item.submissionStatus === statusFilter)
-        && (!fromDate || day >= fromDate)
-        && (!toDate || day <= toDate);
+        && (statusFilter === "Semua Status" || normalizedStatus === statusFilter || item.submissionStatus === statusFilter);
     })
     .sort((a, b) => Date.parse(b.reviewedAt || b.submittedAt) - Date.parse(a.reviewedAt || a.submittedAt)),
-  [fromDate, query, reviewed, statusFilter, toDate]);
+  [query, reviewed, statusFilter]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const visible = filtered.slice((page - 1) * pageSize, page * pageSize);
   const firstItem = filtered.length ? (page - 1) * pageSize + 1 : 0;
   const lastItem = Math.min(page * pageSize, filtered.length);
-
-  function downloadReport() {
-    const rows = [
-      ["Nama Pengajuan", "Kategori", "Pelapor", "Status", "Tanggal Pengajuan", "Tanggal Analisis", "Catatan"],
-      ...filtered.map((item) => [item.title, item.category, item.reporter, displayStatus(item.submissionStatus), item.submittedAt, item.reviewedAt ?? "", item.bpdlhNote || item.adminNote]),
-    ];
-    const csv = rows.map((row) => row.map((value) => `"${value.replaceAll('"', '""')}"`).join(",")).join("\r\n");
-    const url = URL.createObjectURL(new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" }));
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = "riwayat-analisis-bpdlh.csv";
-    anchor.click();
-    URL.revokeObjectURL(url);
-  }
 
   return (
     <div className="relative isolate mx-auto grid max-w-[1500px] gap-4 overflow-hidden rounded-[1.75rem] bg-[radial-gradient(ellipse_at_100%_0%,#dce8ff_0%,transparent_38%),linear-gradient(135deg,#f6f9ff_0%,#eef4ff_100%)] p-4 sm:gap-5 sm:p-6 lg:p-7">
@@ -121,7 +101,6 @@ export function AnalysisHistory() {
           <span className="grid size-14 place-items-center rounded-2xl bg-blue-100 text-blue-700 shadow-inner sm:size-[4.5rem]"><ClockIcon width={32} height={32} /></span>
           <div><h1 className="text-xl font-extrabold tracking-tight text-[#102a61] sm:text-3xl">Riwayat Analisis</h1><p className="mt-1 max-w-2xl text-xs leading-relaxed text-[#354b78] sm:text-sm">Tinjau kembali hasil keputusan dan catatan atas pengajuan yang telah dianalisis.</p></div>
         </div>
-        <button type="button" onClick={downloadReport} disabled={filtered.length === 0} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-blue-700 px-4 py-2 text-xs font-bold text-white shadow-lg shadow-blue-700/20 transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"><FileIcon width={15} height={15} />Unduh Laporan</button>
       </header>
 
       <section aria-label="Ringkasan riwayat analisis" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -131,9 +110,8 @@ export function AnalysisHistory() {
         <SummaryCard label="Dalam Proses" value={inProgressCount} tone="blue" icon={<ClockIcon width={22} height={22} />} trend="Menunggu keputusan" />
       </section>
 
-      <section className="grid gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(240px,1.5fr)_minmax(220px,0.75fr)_minmax(170px,0.7fr)_auto]">
+      <section className="grid gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(240px,1.5fr)_minmax(170px,0.7fr)_auto]">
         <label className="relative block"><span className="sr-only">Cari riwayat analisis</span><SearchIcon width={17} height={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-blue-900" /><input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Cari nama pengajuan, tanggal, atau keterangan..." className="h-11 w-full rounded-xl border border-blue-100 bg-white/90 pl-10 pr-3 text-xs text-[#102a61] shadow-sm outline-none placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100" /></label>
-        <div className="flex min-w-0 items-center gap-2 rounded-xl border border-blue-100 bg-white/90 px-3 shadow-sm"><CalendarIcon width={16} height={16} className="shrink-0 text-blue-700" /><label className="min-w-0 flex-1"><span className="sr-only">Tanggal mulai</span><input aria-label="Tanggal mulai" type="date" value={fromDate} onChange={(event) => { setFromDate(event.target.value); setPage(1); }} className="h-10 w-full min-w-0 bg-transparent text-[10px] text-blue-800 outline-none" /></label><span className="text-[10px] text-slate-400">s.d.</span><label className="min-w-0 flex-1"><span className="sr-only">Tanggal akhir</span><input aria-label="Tanggal akhir" type="date" value={toDate} onChange={(event) => { setToDate(event.target.value); setPage(1); }} className="h-10 w-full min-w-0 bg-transparent text-[10px] text-blue-800 outline-none" /></label></div>
         <label><span className="sr-only">Filter status</span><select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }} className="h-11 w-full rounded-xl border border-blue-100 bg-white/90 px-4 text-xs font-semibold text-[#102a61] shadow-sm outline-none focus:border-blue-400"><option>Semua Status</option><option>Dalam Proses</option>{statuses.filter((status) => status !== "Menunggu Review").map((status) => <option key={status}>{status}</option>)}</select></label>
         <button type="button" onClick={() => void refresh()} disabled={loading} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-blue-100 bg-white/90 px-4 text-xs font-bold text-blue-700 shadow-sm transition hover:bg-blue-50 disabled:opacity-60"><RefreshIcon />{loading ? "Memuat…" : "Refresh"}</button>
       </section>
