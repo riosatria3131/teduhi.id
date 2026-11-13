@@ -445,7 +445,7 @@ export function ReportForm() {
             label="Kecamatan"
             value={idKecamatan}
             options={districts}
-            placeholder={idKabupaten ? "Pilih kecamatan" : "Pilih kabupaten/kota terlebih dahulu"}
+            placeholder="Pilih kecamatan"
             loading={loadingDistricts}
             disabled={!idKabupaten}
             onChange={(option) => setIdKecamatan(option.id)}
