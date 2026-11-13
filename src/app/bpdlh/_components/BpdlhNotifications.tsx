@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { BellIcon } from "@/components/icons";
 import { getBpdlhReportSubmissions, type BpdlhReportSubmission } from "@/lib/bpdlh-report-submissions";
-import { subscribeToBudgetChanges } from "@/lib/bpdlh-budget-store";
 import { loadAdminNotificationReadIds, markAdminNotificationReadIds } from "@/lib/admin-notification-read-state";
+import { useBpdlhNotificationPreferences } from "@/lib/bpdlh-notification-preference";
+import { getSupabaseClient } from "@/lib/supabaseClient";
 
 const SEEN_KEY = "teduhi:bpdlh-seen-citizen-reports";
 const READ_ID_PREFIX = "bpdlh-submission:";
@@ -19,11 +20,26 @@ function getSeenIds() {
   }
 }
 
+type BpdlhNotificationItem = {
+  id: string;
+  reportId: string;
+  title: string;
+  description: string;
+  kind: "new" | "status";
+  createdAt: string;
+};
+
+function formatNotificationTime(value: string) {
+  if (!value || Number.isNaN(Date.parse(value))) return "Waktu tidak tersedia";
+  return new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+}
+
 export function BpdlhNotifications() {
   const [submissions, setSubmissions] = useState<BpdlhReportSubmission[]>([]);
   const [seenIds, setSeenIds] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { preferences } = useBpdlhNotificationPreferences();
 
   useEffect(() => {
     if (!open) return;
@@ -43,7 +59,7 @@ export function BpdlhNotifications() {
         // Only records explicitly sent by the main admin exist in this table.
         // A citizen report in the general reports table is not a BPDLH request.
         const nextSubmissions = await getBpdlhReportSubmissions();
-        if (active) setSubmissions(nextSubmissions.filter((submission) => submission.submissionStatus === "Menunggu Review"));
+        if (active) setSubmissions(nextSubmissions);
       } catch {
         if (active) setSubmissions([]);
       }
@@ -53,40 +69,69 @@ export function BpdlhNotifications() {
     syncSeen();
     const savedSeenIds = getSeenIds();
     if (savedSeenIds.length > 0) {
-      markAdminNotificationReadIds(savedSeenIds.map((id) => `${READ_ID_PREFIX}${id}`));
+      markAdminNotificationReadIds(savedSeenIds.map((id) => id.startsWith(READ_ID_PREFIX) || id.startsWith("bpdlh-status:") ? id : `${READ_ID_PREFIX}${id}`));
     }
     void loadAdminNotificationReadIds().then((ids) => {
       if (!active) return;
-      const persistedSeenIds = ids
-        .filter((id) => id.startsWith(READ_ID_PREFIX))
-        .map((id) => id.slice(READ_ID_PREFIX.length));
-      setSeenIds((current) => [...new Set([...current, ...persistedSeenIds])]);
+      setSeenIds((current) => [...new Set([...current, ...ids])]);
     }).catch(() => {
       // Keep local seen state if persisted reads are temporarily unavailable.
     });
-    const unsubscribe = subscribeToBudgetChanges(() => void refresh());
+    const supabase = getSupabaseClient();
+    const channel = supabase
+      .channel(`bpdlh-submission-notifications-${crypto.randomUUID()}`)
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "bpdlh_report_submissions",
+      }, () => void refresh())
+      .subscribe();
     const poll = window.setInterval(() => void refresh(), 20000);
     window.addEventListener("storage", syncSeen);
     return () => {
       active = false;
       window.clearInterval(poll);
-      unsubscribe();
+      void supabase.removeChannel(channel);
       window.removeEventListener("storage", syncSeen);
     };
   }, []);
 
-  const unreadSubmissions = submissions.filter((submission) => !seenIds.includes(submission.reportId));
-  const notificationCount = unreadSubmissions.length;
+  const notifications = submissions.reduce<BpdlhNotificationItem[]>((items, submission) => {
+    if (submission.submissionStatus === "Menunggu Review" && preferences.newSubmissionsEnabled) {
+      items.push({
+        id: `${READ_ID_PREFIX}${submission.reportId}`,
+        reportId: submission.reportId,
+        title: submission.title,
+        description: `${submission.category} · ${submission.address}`,
+        kind: "new" as const,
+        createdAt: submission.submittedAt,
+      });
+    }
+    if (submission.submissionStatus !== "Menunggu Review" && submission.submissionStatus !== "Belum Diajukan" && submission.reviewedAt && preferences.statusChangesEnabled) {
+      items.push({
+        id: `bpdlh-status:${submission.reportId}:${submission.reviewedAt}`,
+        reportId: submission.reportId,
+        title: `${submission.title} · ${submission.submissionStatus}`,
+        description: submission.bpdlhNote || "Status pengajuan telah diperbarui.",
+        kind: "status" as const,
+        createdAt: submission.reviewedAt,
+      });
+    }
+    return items;
+  }, []).sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
+  const isSeen = (item: BpdlhNotificationItem) => seenIds.includes(item.id)
+    || (item.kind === "new" && seenIds.includes(item.reportId));
+  const notificationCount = notifications.filter((item) => !isSeen(item)).length;
 
-  function saveToInbox(reportId: string) {
-    const next = [...new Set([...seenIds, reportId])];
+  function saveToInbox(notification: BpdlhNotificationItem) {
+    const next = [...new Set([...seenIds, notification.id])];
     setSeenIds(next);
     try {
       localStorage.setItem(SEEN_KEY, JSON.stringify(next));
     } catch {
       // Navigasi tetap dapat dilakukan walau penyimpanan notifikasi tidak tersedia.
     }
-    markAdminNotificationReadIds([`${READ_ID_PREFIX}${reportId}`]);
+    markAdminNotificationReadIds([notification.id]);
   }
 
   function closeNotifications() {
@@ -106,18 +151,19 @@ export function BpdlhNotifications() {
             <span className="text-[10px] text-slate-500">{notificationCount} belum dibuka</span>
           </div>
           <ul className="max-h-80 overflow-y-auto divide-y divide-slate-100">
-            {submissions.length === 0 && <li className="px-4 py-5 text-center text-[11px] text-slate-500">Belum ada pengajuan yang dikirim admin utama.</li>}
-            {submissions.slice(0, 8).map((submission) => (
-              <li key={submission.reportId}>
-                <Link href="/bpdlh/pengajuan" onNavigate={closeNotifications} onClick={() => { saveToInbox(submission.reportId); closeNotifications(); }} className="block px-4 py-3 transition hover:bg-blue-50/60">
-                  <span className="flex items-start justify-between gap-3"><span className="text-[11px] font-bold text-[#102a61]">{submission.title}</span>{!seenIds.includes(submission.reportId) && <span className="mt-1 size-2 shrink-0 rounded-full bg-rose-500" />}</span>
-                  <span className="mt-1 block text-[10px] text-slate-500">{submission.category} · {submission.address}</span>
-                  <span className="mt-1 block text-[9px] text-slate-400">Dikirim admin utama · menunggu review BPDLH</span>
+            {notifications.length === 0 && <li className="px-4 py-5 text-center text-[11px] text-slate-500">Belum ada notifikasi pengajuan.</li>}
+            {notifications.slice(0, 8).map((notification) => (
+              <li key={notification.id}>
+                <Link href="/bpdlh/pengajuan" onNavigate={closeNotifications} onClick={() => { saveToInbox(notification); closeNotifications(); }} className="block px-4 py-3 transition hover:bg-blue-50/60">
+                  <span className="flex items-start justify-between gap-3"><span className="text-[9px] font-extrabold uppercase tracking-wide text-blue-700">{notification.kind === "new" ? "Pengajuan baru" : "Perubahan status"}</span>{!isSeen(notification) && <span className="mt-1 size-2 shrink-0 rounded-full bg-rose-500" />}</span>
+                  <span className="mt-1 block text-[11px] font-bold text-[#102a61]">{notification.title}</span>
+                  <span className="mt-1 block line-clamp-2 text-[10px] text-slate-500">{notification.description}</span>
+                  <time className="mt-1 block text-[9px] text-slate-400">{formatNotificationTime(notification.createdAt)}</time>
                 </Link>
               </li>
             ))}
           </ul>
-          {submissions.length > 0 && <Link href="/bpdlh/pengajuan" onNavigate={closeNotifications} onClick={() => { submissions.forEach((submission) => saveToInbox(submission.reportId)); closeNotifications(); }} className="block border-t border-slate-100 px-4 py-3 text-center text-[10px] font-bold text-blue-700 hover:bg-blue-50">Buka semua pengajuan terkirim</Link>}
+          {notifications.length > 0 && <Link href="/bpdlh/pengajuan" onNavigate={closeNotifications} onClick={() => { notifications.forEach(saveToInbox); closeNotifications(); }} className="block border-t border-slate-100 px-4 py-3 text-center text-[10px] font-bold text-blue-700 hover:bg-blue-50">Buka semua pengajuan</Link>}
         </section>
       </>}
     </div>

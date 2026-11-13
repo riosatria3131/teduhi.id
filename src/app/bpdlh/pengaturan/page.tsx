@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogOutIcon } from "@/components/icons";
 import { signOutDemoAccount } from "@/lib/demo-auth";
+import { useBpdlhNotificationPreferences } from "@/lib/bpdlh-notification-preference";
 
 const sections = ["Informasi Akun", "Notifikasi"] as const;
 
@@ -14,6 +15,7 @@ export default function BpdlhSettingsPage() {
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [logoutPending, setLogoutPending] = useState(false);
   const [logoutError, setLogoutError] = useState("");
+  const { draft, loading: preferencesLoading, saving, saved: preferencesSaved, error: preferencesError, updateDraft, save: savePreferences } = useBpdlhNotificationPreferences();
 
   async function handleLogout() {
     setLogoutPending(true);
@@ -39,18 +41,20 @@ export default function BpdlhSettingsPage() {
         <div role="tablist" aria-label="Kategori pengaturan" className="flex overflow-x-auto border-b border-slate-100 px-3 sm:px-5">
           {sections.map((item) => <button key={item} type="button" role="tab" aria-selected={section === item} onClick={() => { setSection(item); setSaved(false); }} className={`shrink-0 border-b-2 px-4 py-3.5 text-xs font-bold transition ${section === item ? "border-blue-600 text-blue-700" : "border-transparent text-slate-500 hover:text-[#102a61]"}`}>{item}</button>)}
         </div>
-        <form onSubmit={(event) => { event.preventDefault(); setSaved(true); }} className="grid gap-4 p-4 sm:p-6">
+        <form onSubmit={(event) => { event.preventDefault(); if (section === "Notifikasi") { void savePreferences(); } else { setSaved(true); } }} className="grid gap-4 p-4 sm:p-6">
           {section === "Informasi Akun" ? <>
             <label className="grid max-w-xl gap-2 text-xs font-bold text-[#102a61]">Nama tampilan<input defaultValue="Admin Keuangan" className="h-10 rounded-lg border border-slate-200 px-3 text-xs font-normal outline-none focus:border-blue-400" /></label>
             <label className="grid max-w-xl gap-2 text-xs font-bold text-[#102a61]">Unit kerja<input defaultValue="BPDLH · Keuangan" className="h-10 rounded-lg border border-slate-200 px-3 text-xs font-normal outline-none focus:border-blue-400" /></label>
             <p className="max-w-xl rounded-lg bg-slate-50 p-3 text-[10px] leading-relaxed text-slate-500">Pengaturan akun pada panel ini masih berupa tampilan demo dan belum tersimpan ke server.</p>
           </> : <>
-            <label className="flex max-w-xl items-center justify-between gap-4 rounded-lg border border-slate-200 p-3 text-xs font-semibold text-[#102a61]">Notifikasi pengajuan baru<input type="checkbox" defaultChecked className="size-4 accent-blue-700" /></label>
-            <label className="flex max-w-xl items-center justify-between gap-4 rounded-lg border border-slate-200 p-3 text-xs font-semibold text-[#102a61]">Notifikasi perubahan status<input type="checkbox" defaultChecked className="size-4 accent-blue-700" /></label>
+            <label className="flex max-w-xl items-center justify-between gap-4 rounded-lg border border-slate-200 p-3 text-xs font-semibold text-[#102a61]">Notifikasi pengajuan baru<input type="checkbox" checked={draft.newSubmissionsEnabled} disabled={preferencesLoading || saving} onChange={(event) => updateDraft("newSubmissionsEnabled", event.target.checked)} className="size-4 accent-blue-700" /></label>
+            <label className="flex max-w-xl items-center justify-between gap-4 rounded-lg border border-slate-200 p-3 text-xs font-semibold text-[#102a61]">Notifikasi perubahan status<input type="checkbox" checked={draft.statusChangesEnabled} disabled={preferencesLoading || saving} onChange={(event) => updateDraft("statusChangesEnabled", event.target.checked)} className="size-4 accent-blue-700" /></label>
+            {preferencesLoading && <p role="status" className="max-w-xl text-xs text-slate-500">Memuat preferensi dari Supabase…</p>}
+            {preferencesError && <p role="alert" className="max-w-xl rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">{preferencesError}</p>}
           </>}
           <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4">
-            <button type="submit" className="min-h-10 rounded-lg bg-blue-700 px-4 py-2 text-xs font-bold text-white transition hover:bg-blue-800">Simpan Perubahan</button>
-            {saved && <span role="status" className="text-xs font-semibold text-emerald-700">Pengaturan demo berhasil disimpan.</span>}
+            <button type="submit" disabled={section === "Notifikasi" && (preferencesLoading || saving)} className="min-h-10 rounded-lg bg-blue-700 px-4 py-2 text-xs font-bold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60">{saving ? "Menyimpan…" : "Simpan Perubahan"}</button>
+            {section === "Notifikasi" ? preferencesSaved && <span role="status" className="text-xs font-semibold text-emerald-700">Preferensi notifikasi tersimpan.</span> : saved && <span role="status" className="text-xs font-semibold text-emerald-700">Pengaturan demo berhasil disimpan.</span>}
           </div>
         </form>
       </section>
