@@ -105,7 +105,6 @@ export function AdminDashboardView() {
         <IslandReportPieChart />
       </div>
 
-      <p className="text-center text-[8px] text-slate-400">Statistik laporan dimuat langsung dari database Supabase.</p>
     </div>
   );
 }
