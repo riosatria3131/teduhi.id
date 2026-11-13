@@ -128,7 +128,6 @@ export function AdminResidentsTable() {
         <p className="text-xs text-slate-500">Menampilkan {filteredResidents.length ? (page - 1) * 5 + 1 : 0}–{Math.min(page * 5, filteredResidents.length)} dari {filteredResidents.length} data</p>
         <div className="flex items-center gap-1"><button type="button" onClick={() => setPage((current) => Math.max(1, current - 1))} className="size-8 rounded-lg border border-slate-200 text-sm text-slate-500 hover:bg-slate-50" aria-label="Halaman sebelumnya">‹</button>{Array.from({ length: pageCount }, (_, index) => <button key={index} type="button" onClick={() => setPage(index + 1)} className={`size-8 rounded-lg text-xs font-bold ${page === index + 1 ? "bg-blue-700 text-white" : "text-slate-500 hover:bg-slate-50"}`}>{index + 1}</button>)}<button type="button" onClick={() => setPage((current) => Math.min(pageCount, current + 1))} className="size-8 rounded-lg border border-slate-200 text-sm text-slate-500 hover:bg-slate-50" aria-label="Halaman berikutnya">›</button></div>
       </div>
-      <p className="border-t border-slate-100 px-5 py-2.5 text-[11px] text-slate-400">Data warga diambil langsung dari database Supabase.</p>
     </section>
   );
 }
