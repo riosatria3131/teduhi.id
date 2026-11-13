@@ -429,7 +429,7 @@ export function ReportForm() {
             label="Kabupaten/Kota"
             value={idKabupaten}
             options={regencies}
-            placeholder={idProvinsi ? "Pilih kabupaten/kota" : "Pilih provinsi terlebih dahulu"}
+            placeholder="Pilih Kabupaten/Kota"
             loading={loadingRegencies}
             disabled={!idProvinsi}
             onChange={(option) => {
