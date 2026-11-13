@@ -84,7 +84,7 @@ export function AdminReportsTable() {
         searchPlaceholder="Cari laporan atau lokasi..."
         filters={statusFilters}
         secondaryFilter={{ label: "Filter pulau", options: [...INDONESIAN_ISLANDS] }}
-        footerMessage="Data laporan warga tersimpan di Supabase."
+        footerMessage=""
       />
     </>
   );
