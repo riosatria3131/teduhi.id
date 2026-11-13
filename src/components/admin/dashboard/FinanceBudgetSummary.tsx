@@ -33,7 +33,7 @@ export function FinanceBudgetSummary() {
         setUpdatedAt(new Date());
         setError("");
       } catch (loadError) {
-        if (active) setError(loadError instanceof Error ? loadError.message : "Ringkasan dana gagal dimuat dari Supabase.");
+        if (active) setError(loadError instanceof Error ? loadError.message : "Ringkasan dana gagal dimuat.");
       } finally {
         if (active) setLoading(false);
       }
@@ -62,7 +62,7 @@ export function FinanceBudgetSummary() {
         <p className="mt-0.5 text-[10px] text-slate-500">Rekap langsung dari pos anggaran BPDLH</p>
       </div>
 
-      {error ? <p role="alert" className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-3 text-xs text-rose-800">Ringkasan dana gagal dimuat dari Supabase. Pastikan migrasi akses ringkasan sudah dijalankan. {error}</p> : (
+      {error ? <p role="alert" className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-3 text-xs text-rose-800">Ringkasan dana gagal dimuat. Pastikan migrasi akses ringkasan sudah dijalankan. {error}</p> : (
         <div className="mt-4 grid flex-1 gap-2.5 sm:grid-cols-3 sm:gap-3">
           {metrics.map((metric) => (
             <article key={metric.key} className="flex min-w-0 items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/80 p-3 sm:flex-col sm:items-start sm:justify-start sm:gap-2.5 sm:p-3.5">
@@ -78,7 +78,7 @@ export function FinanceBudgetSummary() {
       )}
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 text-[9px] text-slate-400">
-        <span>{error ? "Koneksi database bermasalah." : updatedAt ? `Supabase · diperbarui ${new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit" }).format(updatedAt)}` : "Menghubungkan ke Supabase…"}</span>
+        <span>{error ? "Koneksi database bermasalah." : updatedAt ? `Diperbarui ${new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit" }).format(updatedAt)}` : "Menghubungkan…"}</span>
         <span>{allocations.length} pos anggaran · sinkron realtime</span>
       </div>
     </section>

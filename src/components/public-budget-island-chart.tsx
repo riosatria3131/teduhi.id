@@ -190,7 +190,7 @@ export function PublicBudgetIslandChart() {
           </div>
         </div>
       )}
-      <p className="mt-4 border-t border-slate-100 pt-3 text-[10px] text-slate-400">{updatedAt ? `Diperbarui ${new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(updatedAt)} · Supabase Realtime` : "Data agregat pencairan dikelompokkan berdasarkan bulan, tahun, dan pulau."}</p>
+      <p className="mt-4 border-t border-slate-100 pt-3 text-[10px] text-slate-400">{updatedAt ? `Diperbarui ${new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(updatedAt)}` : "Data agregat pencairan dikelompokkan berdasarkan bulan, tahun, dan pulau."}</p>
     </section>
   );
 }
