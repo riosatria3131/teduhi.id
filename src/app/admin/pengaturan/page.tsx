@@ -185,7 +185,7 @@ export default function AdminSettingsPage() {
           </> : tab === "Kelola Berita" ? <>
             <div className="max-w-3xl">
               <h2 className="text-base font-extrabold text-[#102a61]">Berita landing page</h2>
-              <p className="mt-1 text-xs leading-relaxed text-slate-500">Tambahkan berita dengan tautan sumber, foto, dan deskripsi. Maksimal 5 berita; foto maksimal 500 KB. Data berita tersimpan di Supabase.</p>
+              <p className="mt-1 text-xs leading-relaxed text-slate-500">Tambahkan berita dengan tautan sumber, foto, dan deskripsi. Maksimal 5 berita; foto maksimal 500 KB.</p>
             </div>
             <div className="grid max-w-3xl gap-4 sm:grid-cols-2">
               <label className="grid gap-2 text-sm font-bold text-[#102a61]">Judul berita<input maxLength={120} value={newsForm.title} onChange={(event) => setNewsForm((current) => ({ ...current, title: event.target.value }))} className={textFieldClass} placeholder="Judul berita" /></label>
