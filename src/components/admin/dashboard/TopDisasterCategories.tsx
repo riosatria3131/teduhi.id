@@ -66,7 +66,7 @@ export function TopDisasterCategories() {
       <Link href="/admin/kategori" className="mt-3 inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 hover:underline">
         Lihat Semua <ArrowRightIcon width={12} height={12} />
       </Link>
-      {error ? <p role="alert" className="mt-2 text-[9px] text-rose-600">Gagal memuat agregat Supabase: {error}</p> : <p className="mt-2 text-[9px] text-slate-400">Jumlah kategori dihitung dari tabel reports Supabase.</p>}
+      {error && <p role="alert" className="mt-2 text-[9px] text-rose-600">Gagal memuat agregat Supabase: {error}</p>}
     </section>
   );
 }
