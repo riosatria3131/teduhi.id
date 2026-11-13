@@ -201,7 +201,6 @@ export function PaymentGate() {
         </div>
 
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-4 py-3.5 sm:px-5"><p className="text-[10px] text-slate-500">Menampilkan {filtered.length ? (page - 1) * PAGE_SIZE + 1 : 0}–{Math.min(page * PAGE_SIZE, filtered.length)} dari {filtered.length} pengeluaran</p><nav aria-label="Navigasi halaman buku kas keluar" className="flex items-center gap-1"><button type="button" disabled={page === 1} onClick={() => setPage((current) => Math.max(1, current - 1))} aria-label="Halaman sebelumnya" className="grid size-8 place-items-center rounded-lg border border-slate-200 text-sm text-slate-500 hover:bg-slate-50 disabled:opacity-40">‹</button><span className="px-2 text-[10px] font-bold text-blue-700">{page} / {pageCount}</span><button type="button" disabled={page === pageCount} onClick={() => setPage((current) => Math.min(pageCount, current + 1))} aria-label="Halaman berikutnya" className="grid size-8 place-items-center rounded-lg border border-slate-200 text-sm text-slate-500 hover:bg-slate-50 disabled:opacity-40">›</button></nav></footer>
-        <p className="border-t border-slate-100 px-4 py-2.5 text-[9px] text-slate-400 sm:px-5">Transaksi dan rincian nota tersimpan di Supabase dan disinkronkan realtime. Transfer bank belum terhubung.</p>
       </section>
 
     </div>
