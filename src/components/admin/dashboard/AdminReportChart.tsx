@@ -90,7 +90,7 @@ export function AdminReportChart() {
       <div className="mt-2.5 flex justify-center text-[9px] font-semibold text-slate-500">
         <span className="inline-flex items-center gap-1"><i className="size-2 rounded-full bg-emerald-500" />Laporan tertangani</span>
       </div>
-      {error ? <p role="alert" className="mt-2 text-center text-[9px] text-rose-600">Grafik gagal dimuat. {error}</p> : <p className="mt-2 text-center text-[9px] text-slate-400">{loading ? "Memuat agregat laporan dari Supabase…" : "Jumlah laporan berstatus selesai dari Supabase."}</p>}
+      {error ? <p role="alert" className="mt-2 text-center text-[9px] text-rose-600">Grafik gagal dimuat. {error}</p> : loading && <p className="mt-2 text-center text-[9px] text-slate-400">Memuat agregat laporan dari Supabase…</p>}
     </section>
   );
 }
