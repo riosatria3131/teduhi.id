@@ -121,10 +121,11 @@ export function BpdlhNotifications() {
   }, []).sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
   const isSeen = (item: BpdlhNotificationItem) => seenIds.includes(item.id)
     || (item.kind === "new" && seenIds.includes(item.reportId));
-  const notificationCount = notifications.filter((item) => !isSeen(item)).length;
+  const unreadNotifications = notifications.filter((item) => !isSeen(item));
+  const notificationCount = unreadNotifications.length;
 
   function saveToInbox(notification: BpdlhNotificationItem) {
-    const next = [...new Set([...seenIds, notification.id])];
+    const next = [...new Set([...seenIds, ...getSeenIds(), notification.id])];
     setSeenIds(next);
     try {
       localStorage.setItem(SEEN_KEY, JSON.stringify(next));
@@ -151,11 +152,11 @@ export function BpdlhNotifications() {
             <span className="text-[10px] text-slate-500">{notificationCount} belum dibuka</span>
           </div>
           <ul className="max-h-80 overflow-y-auto divide-y divide-slate-100">
-            {notifications.length === 0 && <li className="px-4 py-5 text-center text-[11px] text-slate-500">Belum ada notifikasi pengajuan.</li>}
-            {notifications.slice(0, 8).map((notification) => (
+            {unreadNotifications.length === 0 && <li className="px-4 py-5 text-center text-[11px] text-slate-500">Tidak ada notifikasi baru.</li>}
+            {unreadNotifications.slice(0, 8).map((notification) => (
               <li key={notification.id}>
                 <Link href="/bpdlh/pengajuan" onNavigate={closeNotifications} onClick={() => { saveToInbox(notification); closeNotifications(); }} className="block px-4 py-3 transition hover:bg-blue-50/60">
-                  <span className="flex items-start justify-between gap-3"><span className="text-[9px] font-extrabold uppercase tracking-wide text-blue-700">{notification.kind === "new" ? "Pengajuan baru" : "Perubahan status"}</span>{!isSeen(notification) && <span className="mt-1 size-2 shrink-0 rounded-full bg-rose-500" />}</span>
+                  <span className="flex items-start justify-between gap-3"><span className="text-[9px] font-extrabold uppercase tracking-wide text-blue-700">{notification.kind === "new" ? "Pengajuan baru" : "Perubahan status"}</span><span className="mt-1 size-2 shrink-0 rounded-full bg-rose-500" /></span>
                   <span className="mt-1 block text-[11px] font-bold text-[#102a61]">{notification.title}</span>
                   <span className="mt-1 block line-clamp-2 text-[10px] text-slate-500">{notification.description}</span>
                   <time className="mt-1 block text-[9px] text-slate-400">{formatNotificationTime(notification.createdAt)}</time>
@@ -163,7 +164,7 @@ export function BpdlhNotifications() {
               </li>
             ))}
           </ul>
-          {notifications.length > 0 && <Link href="/bpdlh/pengajuan" onNavigate={closeNotifications} onClick={() => { notifications.forEach(saveToInbox); closeNotifications(); }} className="block border-t border-slate-100 px-4 py-3 text-center text-[10px] font-bold text-blue-700 hover:bg-blue-50">Buka semua pengajuan</Link>}
+          {unreadNotifications.length > 0 && <Link href="/bpdlh/pengajuan" onNavigate={closeNotifications} onClick={() => { unreadNotifications.forEach(saveToInbox); closeNotifications(); }} className="block border-t border-slate-100 px-4 py-3 text-center text-[10px] font-bold text-blue-700 hover:bg-blue-50">Buka semua pengajuan</Link>}
         </section>
       </>}
     </div>
