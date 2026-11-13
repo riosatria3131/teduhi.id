@@ -66,3 +66,13 @@ npm run start   # Jalankan build produksi
 - Halaman pengguna/warga: **selesai**.
 - Halaman admin: **selesai**.
 - Tahap berikutnya: **penambahan fitur baru, pengecekan eror dan bug**.
+
+#Akun Admin
+Admin BPDB:
+muhammadachdiamanggalamanggala@gmail.com
+Pw: manggala123
+Admin BPDLH
+davinalgifari346@gmail.com
+Pw: davin123
+
+
