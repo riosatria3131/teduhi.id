@@ -211,7 +211,7 @@ export function AdminBpdlhSubmissions() {
             </tbody>
           </table>
         </div>
-        <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-4 py-3 text-[10px] text-slate-500 sm:px-5"><span>Menampilkan {filteredReports.length} dari {reports.length} laporan</span><span>Data laporan diambil langsung dari database Supabase.</span></footer>
+        <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-4 py-3 text-[10px] text-slate-500 sm:px-5"><span>Menampilkan {filteredReports.length} dari {reports.length} laporan</span></footer>
       </section>
       {detailReport && <div role="presentation" onClick={() => setDetailReport(null)} className="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 p-4 backdrop-blur-sm"><section role="dialog" aria-modal="true" aria-labelledby="bpdlh-result-title" onClick={(event) => event.stopPropagation()} className="flex max-h-[90dvh] w-full max-w-xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
         <header className="flex shrink-0 items-start justify-between gap-4 rounded-t-3xl bg-slate-50/70 px-5 py-4 sm:px-6"><div><p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-blue-700">Hasil review BPDLH</p><h2 id="bpdlh-result-title" className="mt-1 text-lg font-extrabold text-[#102a61]">{detailReport.title}</h2></div><button type="button" onClick={() => setDetailReport(null)} aria-label="Tutup detail" className="grid size-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100">×</button></header>
