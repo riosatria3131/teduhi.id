@@ -216,7 +216,7 @@ export function BudgetAllocations() {
             </tbody>
           </table>
         </div>
-        <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-4 py-3 text-[9px] text-slate-500 sm:px-5"><span>{allocations.length} pos anggaran · Total pagu {formatAmount(totalBudget)}</span><span>{dataError ? "Koneksi database bermasalah." : ready ? "Data tersimpan di Supabase · sinkron realtime aktif · transfer bank belum terhubung." : "Menghubungkan ke database…"}</span></footer>
+        <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-4 py-3 text-[9px] text-slate-500 sm:px-5"><span>{allocations.length} pos anggaran · Total pagu {formatAmount(totalBudget)}</span><span>{dataError ? "Koneksi database bermasalah." : ready ? "" : "Menghubungkan ke database…"}</span></footer>
       </section>
 
       {openMenuId && actionMenuPosition && typeof document !== "undefined" && createPortal(<>
